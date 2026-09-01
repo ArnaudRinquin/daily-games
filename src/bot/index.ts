@@ -23,7 +23,7 @@ function botInfo(env: AppEnv): UserFromGetMe {
   if (!env.BOT_USERNAME) {
     throw new Error(
       'BOT_USERNAME is not set in wrangler.jsonc. Every group invite link is ' +
-        'built from it. Run `pnpm setup`, or set it to the bot\'s @name and redeploy.',
+        'built from it. Run `pnpm bootstrap`, or set it to the bot\'s @name and redeploy.',
     );
   }
   return {

@@ -21,10 +21,10 @@ pnpm exec wrangler deploy --dry-run
 ```bash
 pnpm install
 pnpm exec wrangler login   # interactive, opens a browser
-pnpm setup                 # everything else
+pnpm bootstrap             # everything else
 ```
 
-`pnpm setup` is safe to re-run. It checks your Cloudflare login, validates the
+`pnpm bootstrap` is safe to re-run. It checks your Cloudflare login, validates the
 bot token against `getMe`, creates the D1 database and writes its id into
 `wrangler.jsonc`, applies the schema, generates and stores `WEBHOOK_SECRET`,
 builds the Mini App, deploys, and registers the webhook with
@@ -41,6 +41,11 @@ Until that is done the bot works normally; there is simply no leaderboard
 button. `MINIAPP_SHORT_NAME` has **no default on purpose**: an unregistered
 short name produces a `t.me` link that silently resolves to nothing, which
 reads as a broken bot rather than an unfinished setup.
+
+> Named `bootstrap`, not `setup`: `pnpm setup` is a built-in pnpm command that
+> configures pnpm itself and edits your shell profile, and built-ins shadow
+> scripts. Same reason the deploy script is invoked as `pnpm run deploy` —
+> `pnpm deploy` is also built in.
 
 ### Doing it by hand
 

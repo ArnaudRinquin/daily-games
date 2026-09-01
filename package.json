@@ -3,15 +3,15 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "bootstrap": "node scripts/setup.mjs",
     "dev": "wrangler dev",
+    "dev:web": "vite web",
     "deploy": "pnpm run build:web && wrangler deploy",
     "build:web": "vite build web",
     "test": "vitest run",
     "typecheck": "tsc --noEmit && tsc --noEmit -p web",
     "db:local": "wrangler d1 execute daily-games --local --file=migrations/0001_init.sql",
-    "db:remote": "wrangler d1 execute daily-games --remote --file=migrations/0001_init.sql",
-    "dev:web": "vite web",
-    "setup": "node scripts/setup.mjs"
+    "db:remote": "wrangler d1 execute daily-games --remote --file=migrations/0001_init.sql"
   },
   "dependencies": {
     "grammy": "^1.46.0",
