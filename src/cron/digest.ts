@@ -12,6 +12,7 @@ import {
 } from '../lib/db';
 import { buildBoards, eligibleDays, formatDigest, isComplete } from '../lib/digest';
 import type { DailyBoard } from '../lib/ranking';
+import { miniAppButton } from '../lib/miniapp';
 import { parisHour, playDate } from '../lib/time';
 
 export const MAX_DIGESTS_PER_TICK = 5;
@@ -74,6 +75,7 @@ export async function postDigests(env: AppEnv, api: Api, now: Date): Promise<num
       });
       await api.sendMessage(group.chat_id, text, {
         link_preview_options: { is_disabled: true },
+        reply_markup: miniAppButton(env.BOT_USERNAME, env.MINIAPP_SHORT_NAME),
       });
       posted++;
     } catch (error) {

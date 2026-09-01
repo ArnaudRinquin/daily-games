@@ -12,6 +12,7 @@ import {
 import { joinGroupFromPayload } from './groups';
 import type { AppBot } from './types';
 import { CB, gamesKeyboard, hoursKeyboard } from './keyboards';
+import { miniAppButton } from '../lib/miniapp';
 import { playDate } from '../lib/time';
 
 const hh = (h: number) => `${String(h).padStart(2, '0')}:00`;
@@ -29,6 +30,7 @@ export function welcomeText(firstName: string, hour: number, gameCount: number):
     '/games — pick which games you play',
     '/time — change the reminder',
     '/status — what you have submitted today',
+    '/board — the leaderboard',
     '/pause — stop reminders',
   ].join('\n');
 }
@@ -100,6 +102,12 @@ export function registerOnboarding(bot: AppBot): void {
         ? 'No games selected. /games to pick some.'
         : `Today (${today}):\n${lines.join('\n')}`,
     );
+  });
+
+  bot.chatType('private').command('board', async (ctx) => {
+    await ctx.reply('Standings:', {
+      reply_markup: miniAppButton(ctx.env.BOT_USERNAME, ctx.env.MINIAPP_SHORT_NAME),
+    });
   });
 
   bot.chatType('private').command('pause', async (ctx) => {

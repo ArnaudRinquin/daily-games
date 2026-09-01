@@ -24,6 +24,7 @@
 
   "vars": {
     "BOT_USERNAME": "daily_games_bot",
+    "MINIAPP_SHORT_NAME": "board",
     "TZ_NAME": "Europe/Paris",
     "CUTOFF_HOUR": "21",
     "DAY_ROLLOVER_HOUR": "4"
@@ -34,6 +35,7 @@
       "name": "daily-games-dev",
       "vars": {
         "BOT_USERNAME": "daily_games_dev_bot",
+        "MINIAPP_SHORT_NAME": "board",
         "TZ_NAME": "Europe/Paris",
         "CUTOFF_HOUR": "21",
         "DAY_ROLLOVER_HOUR": "4"

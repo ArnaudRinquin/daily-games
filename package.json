@@ -5,11 +5,12 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "pnpm run build:web && wrangler deploy",
-    "build:web": "vite build",
+    "build:web": "vite build web",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p web",
     "db:local": "wrangler d1 execute daily-games --local --file=migrations/0001_init.sql",
-    "db:remote": "wrangler d1 execute daily-games --remote --file=migrations/0001_init.sql"
+    "db:remote": "wrangler d1 execute daily-games --remote --file=migrations/0001_init.sql",
+    "dev:web": "vite web"
   },
   "dependencies": {
     "grammy": "^1.46.0",
@@ -18,7 +19,13 @@
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.22.0",
     "@types/node": "^26.4.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
+    "@vitejs/plugin-react": "^6.1.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
     "typescript": "^7.0.2",
+    "vite": "^8.2.2",
     "vitest": "^4.1.11",
     "wrangler": "^4.127.1"
   },

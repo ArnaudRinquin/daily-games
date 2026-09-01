@@ -11,7 +11,8 @@ cron, the API and the Mini App.
 
 ```bash
 pnpm test           # unit (pure) + worker (workerd + D1) projects
-pnpm typecheck
+pnpm typecheck      # Worker and Mini App
+pnpm build:web      # Mini App -> web/dist, served by the assets binding
 pnpm exec wrangler deploy --dry-run
 ```
 
@@ -20,8 +21,9 @@ pnpm exec wrangler deploy --dry-run
 Steps 2 and 5 fail silently if skipped.
 
 1. BotFather `/newbot` → keep the token.
-2. BotFather `/newapp` → point at the Workers URL. Web-app buttons do nothing
-   until this exists.
+2. BotFather `/newapp` → point at the Workers URL and note the **short name**;
+   put it in `MINIAPP_SHORT_NAME` in `wrangler.jsonc`. Leaderboard buttons do
+   nothing at all until this exists.
 3. `wrangler d1 create daily-games` → paste `database_id` into `wrangler.jsonc`
    → `pnpm db:remote`.
 4. `wrangler secret put BOT_TOKEN`, `wrangler secret put WEBHOOK_SECRET`.
@@ -32,7 +34,11 @@ Steps 2 and 5 fail silently if skipped.
      -d "secret_token=<WEBHOOK_SECRET>"
    ```
 
-Set `BOT_USERNAME` in `wrangler.jsonc` to match the bot.
+Set `BOT_USERNAME` and `MINIAPP_SHORT_NAME` in `wrangler.jsonc` to match the bot.
+
+The leaderboard button is a plain URL button pointing at
+`https://t.me/<bot>/<short name>`, not a `web_app` button: `web_app` inline
+buttons only work in private chats, and the digest is posted to a group.
 
 ### Dev
 
