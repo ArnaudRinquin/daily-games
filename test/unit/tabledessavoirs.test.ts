@@ -65,6 +65,22 @@ describe('la table des savoirs', () => {
     expect(parseAll(event)).toEqual([]);
   });
 
+  test('tolerates awkward spacing in the title and around the score', () => {
+    const variants = [
+      ABORDABLE,                                              // leading space, as shared
+      ABORDABLE.replace('La Table des Savoirs', 'La  Table  des  Savoirs'), // doubled
+      ABORDABLE.replace('La Table des Savoirs', 'La\u00A0Table des Savoirs'), // NBSP
+      ABORDABLE.replace('Score:', 'Score\u00A0:'),             // French spacing
+      ABORDABLE.replace('Score: 240+', 'Score:240+'),         // no space at all
+      ABORDABLE.replace(/^ /, ''),                            // no leading space
+    ];
+    for (const v of variants) {
+      expect(parseAll(v)).toEqual([
+        { game: 'lts_abordable', value: -240, display: '240 pts (8/10)' },
+      ]);
+    }
+  });
+
   test('drops a message with no readable score', () => {
     expect(parseAll('La Table des Savoirs - 1 septembre 2026\nQuiz Abordable (8/10)')).toEqual([]);
     expect(parseAll('on a joué à La Table des Savoirs hier')).toEqual([]);

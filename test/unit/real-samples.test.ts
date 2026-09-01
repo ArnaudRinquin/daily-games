@@ -19,6 +19,14 @@ lnkd.in/minisudoku.`,
 1️⃣ | 12% match
 2️⃣ | 100% match 📌
 lnkd.in/pinpoint.`,
+  wordle: `Wordle 1,900 X/6
+
+⬛⬛🟨⬛⬛
+🟩🟩⬛⬛⬛
+🟩🟩🟨⬛⬛
+🟩🟩⬛⬛⬛
+🟩🟩⬛⬛⬛
+⬛🟨🟨🟨⬛`,
   fermi: `Fermi · No. 37
 01  1.75×
 02  2.20×
@@ -38,6 +46,7 @@ describe('real share text, one game at a time', () => {
     minisudoku: { game: 'minisudoku', value: 54, display: '0:54' },
     patches: { game: 'patches', value: 7, display: '0:07' },
     pinpoint: { game: 'pinpoint', value: 2, display: '2/5' },
+    wordle: { game: 'wordle', value: 7, display: 'X/6' },
     fermi: { game: 'fermi', value: 1.72, display: '1.72×' },
   };
 
@@ -126,6 +135,7 @@ describe('a whole day pasted at once', () => {
       'queens',
       'tango',
       'wend',
+      'wordle',
       'zip',
     ]);
   });
@@ -144,6 +154,6 @@ describe('a whole day pasted at once', () => {
       .map(([, v]) => v)
       .join('\n\n');
     expect(parseAll(withoutZip).map((m) => m.game)).not.toContain('zip');
-    expect(parseAll(withoutZip)).toHaveLength(8);
+    expect(parseAll(withoutZip)).toHaveLength(9);
   });
 });

@@ -114,10 +114,15 @@ signup, so shipping a parser is only half the job — run
 `POST /admin/offer-game?game=<id>` once afterwards. It is per-game and explicit
 on purpose: a blanket resync would silently re-add games people turned off.
 
-**Wordle is hidden.** It is the only parser never checked against real share
-text, and it never appeared in a day's paste. Shipping it visible would
-pre-select a game the group may not play and put an unwanted link in every
-reminder. Drop `hidden` once a sample lands in `messages`.
+**A failed Wordle still scores.** `X/6` stores as 7, so it sorts below every
+success — but it still earns a rank, and therefore points. Turning up and
+failing beats not turning up, which is the point of the ranking.
+
+**Every parser is now verified against real pasted text.** `test/unit/real-samples.test.ts`
+holds it verbatim; if a case there fails, the parser is wrong, not the fixture.
+The share format differs by platform — web puts the score after a pipe on the
+header line, the iOS app puts it on the next line with no pipe — and both are
+covered.
 
 **Unverified: the already-started deep link.** Whether `?start=g<payload>`
 delivers its payload to a user who has *already* pressed Start is untested. It

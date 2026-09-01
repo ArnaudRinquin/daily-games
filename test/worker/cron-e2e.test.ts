@@ -87,10 +87,20 @@ describe('sendReminders', () => {
     expect(sent[0]?.text).toContain('fermi.gg');
   });
 
-  test('never links a hidden game', async () => {
+  test('never links a game that is not offerable', async () => {
+    // A row left behind by a game whose parser was hidden or removed.
+    await env.DB.prepare("INSERT INTO player_games (user_id, game) VALUES (1, 'retired_game')").run();
     const { sent, api } = stubApi();
     await sendReminders(env, api, MIDDAY);
-    expect(sent[0]?.text).not.toContain('Wordle');
+    expect(sent[0]?.text).not.toContain('retired_game');
+  });
+
+  test('links every game the player actually selected', async () => {
+    const { sent, api } = stubApi();
+    await sendReminders(env, api, MIDDAY);
+    for (const url of ['lnkd.in/queens', 'fermi.gg', 'latabledessavoirs.fr/difficile']) {
+      expect(sent[0]?.text).toContain(url);
+    }
   });
 
   test('the cron firing four times an hour sends one DM', async () => {

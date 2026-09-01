@@ -27,7 +27,10 @@ import { toInt } from './util';
  * corpus rather than being scored as one of these two.
  */
 
-const HEADER = /^[^\S\n]*La Table des Savoirs\b/im;
+// Whitespace-tolerant: the shared text carries a leading space, and French
+// typography sprinkles non-breaking spaces around. `\s` covers NBSP and the
+// narrow NBSP, so doubled or exotic spacing between words still matches.
+const HEADER = /^[^\S\n]*La\s+Table\s+des\s+Savoirs\b/im;
 
 function tier(opts: {
   id: string;

@@ -16,6 +16,7 @@ describe('catalog', () => {
       'minisudoku',
       'patches',
       'pinpoint',
+      'wordle',
       'fermi',
       'lts_abordable',
       'lts_expert',
@@ -73,19 +74,18 @@ describe('pinpoint', () => {
 });
 
 describe('wordle', () => {
-  // Hidden until a real sample arrives, so parseAll skips it. The parser is
-  // still exercised directly, ready for the day `hidden` comes off.
-  test('is not offered while its format is unverified', () => {
-    expect(wordle.hidden).toBe(true);
-    expect(parseAll('Wordle 1,234 4/6')).toEqual([]);
+  test('is offerable now that the format is confirmed', () => {
+    expect(wordle.hidden).toBeUndefined();
   });
 
   test('parses a success', () => {
-    expect(wordle.parse('Wordle 1,234 4/6\n\n⬛🟨⬛⬛⬛')).toEqual({ value: 4, display: '4/6' });
+    expect(parseAll('Wordle 1,234 4/6\n\n⬛🟨⬛⬛⬛')).toEqual([
+      { game: 'wordle', value: 4, display: '4/6' },
+    ]);
   });
 
-  test('stores a failure as 7 so it sorts last', () => {
-    expect(wordle.parse('Wordle 1234 X/6*')).toEqual({ value: 7, display: 'X/6' });
+  test('handles the hard-mode asterisk', () => {
+    expect(wordle.parse('Wordle 1234 3/6*')).toEqual({ value: 3, display: '3/6' });
   });
 });
 
