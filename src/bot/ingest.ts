@@ -15,9 +15,27 @@ function ackLines(matches: readonly { game: string; display: string }[]): string
     .join('\n');
 }
 
-/** Cheap first pass: does this text look like anybody's result at all? */
-function looksLikeAResult(text: string): boolean {
-  return GAMES.some((g) => !g.hidden && g.detect(text));
+/** Emoji used by share grids: 🟩🟥🟨🟦🟪🟧⬜⬛ and the pale variants. */
+const GRID_SQUARE = /[\u{1F7E5}-\u{1F7EB}\u{2B1B}\u{2B1C}\u{25A0}-\u{25FF}]/gu;
+
+/**
+ * Does this look like SOMEONE's daily result, even if no parser understands it?
+ *
+ * Group messages are only stored when this returns true, so ordinary chatter
+ * stays out of the calibration corpus. It deliberately reaches beyond the
+ * games we support: a result for an unknown game posted in a group used to be
+ * discarded outright, so the first Waffle score ever posted was unrecoverable
+ * — exactly the message the corpus exists to capture.
+ */
+export function looksLikeAShare(text: string): boolean {
+  // A parser we already have recognises it.
+  if (GAMES.some((g) => !g.hidden && g.detect(text))) return true;
+
+  // An emoji result grid. Five is well past what normal chat produces.
+  if ((text.match(GRID_SQUARE) ?? []).length >= 5) return true;
+
+  // The `#game1684 0/5` shape most daily games share.
+  return /#\w*\d+\s+[\dX]{1,2}\s*\/\s*\d/i.test(text);
 }
 
 /**
@@ -105,7 +123,7 @@ export function registerIngest(bot: AppBot): void {
     // Only messages that look like a result are stored. Ordinary group chatter
     // must not pollute the calibration corpus — but a MALFORMED result still
     // lands there, because `detect` fires before `parse` gives up.
-    if (!looksLikeAResult(text)) return;
+    if (!looksLikeAShare(text)) return;
 
     await ensurePlayerSeen(ctx.env.DB, {
       id: from.id,

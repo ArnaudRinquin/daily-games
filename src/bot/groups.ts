@@ -1,6 +1,10 @@
-import { addMembership, deactivateGroup, upsertGroup } from '../db/groups';
+import { addMembership, deactivateGroup, getAllGroupMembers, upsertGroup } from '../db/groups';
 import { getPlayer } from '../db/players';
+import { renderDigest } from '../cron/digest';
 import { decodeGroupPayload, joinLink } from '../lib/deeplink';
+import { miniAppButton } from '../lib/miniapp';
+import { playDate } from '../lib/time';
+import { linksText, statusText } from './messages';
 import type { AppBot, AppContext } from './types';
 
 const IN_CHAT = new Set(['member', 'administrator', 'creator', 'restricted']);
@@ -104,6 +108,56 @@ export function registerGroups(bot: AppBot): void {
         : `${player.first_name} is already on the leaderboard.`,
     );
   });
+
+  /**
+   * The standings on demand. Deliberately does NOT claim the day's digest, so
+   * asking for the board at lunchtime does not cost you the evening post.
+   */
+  bot.chatType(['group', 'supergroup']).command(['board', 'leaderboard'], async (ctx) => {
+    const members = (await getAllGroupMembers(ctx.env.DB)).get(ctx.chat.id) ?? [];
+    if (members.length === 0) {
+      await ctx.reply(
+        `Nobody has joined yet 👉 ${joinLink(ctx.me.username, ctx.chat.id)}`,
+        { link_preview_options: { is_disabled: true } },
+      );
+      return;
+    }
+
+    const text = await renderDigest(
+      ctx.env,
+      { chat_id: ctx.chat.id, title: ctx.chat.title },
+      members,
+      playDate(new Date()),
+    );
+    const button = miniAppButton(ctx.env.BOT_USERNAME, ctx.env.MINIAPP_SHORT_NAME);
+    await ctx.reply(text, {
+      link_preview_options: { is_disabled: true },
+      ...(button ? { reply_markup: button } : {}),
+    });
+  });
+
+  bot.chatType(['group', 'supergroup']).command('links', async (ctx) => {
+    const userId = ctx.from?.id;
+    if (userId === undefined) return;
+    await ctx.reply(await linksText(ctx.env.DB, userId), {
+      link_preview_options: { is_disabled: true },
+    });
+  });
+
+  bot.chatType(['group', 'supergroup']).command('status', async (ctx) => {
+    const from = ctx.from;
+    if (!from) return;
+    if (!(await getPlayer(ctx.env.DB, from.id))) {
+      await ctx.reply(`${from.first_name}: paste a result and I'll start tracking you.`);
+      return;
+    }
+    await ctx.reply(await statusText(ctx.env.DB, from.id, from.first_name));
+  });
+
+  // Personal settings stay DM-only. An inline keyboard posted in a group can be
+  // tapped by anyone, and the callback handlers key on whoever tapped — so a
+  // second person would silently rewrite a shared message to show their own
+  // selection. /games /time /pause /resume are not offered here.
 
   // Anything else addressed to the bot in a group: point at the DM.
   bot.chatType(['group', 'supergroup']).command('start', async (ctx) => {

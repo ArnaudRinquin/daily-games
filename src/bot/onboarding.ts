@@ -6,6 +6,7 @@ import { joinGroupFromPayload } from './groups';
 import type { AppBot } from './types';
 import { CB, gamesKeyboard, hoursKeyboard } from './keyboards';
 import { miniAppButton } from '../lib/miniapp';
+import { linksText, statusText } from './messages';
 import { playDate } from '../lib/time';
 
 const hh = (h: number) => `${String(h).padStart(2, '0')}:00`;
@@ -75,27 +76,7 @@ export function registerOnboarding(bot: AppBot): void {
   bot.chatType('private').command('status', async (ctx) => {
     const userId = ctx.from?.id;
     if (userId === undefined) return;
-
-    const today = playDate(new Date());
-    const [scores, selected] = await Promise.all([
-      getPlayerScores(ctx.env.DB, userId, today),
-      getSelectedGames(ctx.env.DB, userId),
-    ]);
-    const done = new Map(scores.map((s) => [s.game, s.display]));
-
-    // Deliberately no rank: that is what the daily digest is for.
-    const lines = selected.map((id) => {
-      const game = gameById(id);
-      const label = game ? `${game.emoji} ${game.label}` : id;
-      const result = done.get(id);
-      return result ? `✅ ${label} — ${result}` : `⬜️ ${label}`;
-    });
-
-    await ctx.reply(
-      lines.length === 0
-        ? 'No games selected. /games to pick some.'
-        : `Today (${today}):\n${lines.join('\n')}`,
-    );
+    await ctx.reply(await statusText(ctx.env.DB, userId));
   });
 
   bot.chatType('private').command('board', async (ctx) => {
@@ -110,20 +91,7 @@ export function registerOnboarding(bot: AppBot): void {
   bot.chatType('private').command('links', async (ctx) => {
     const userId = ctx.from?.id;
     if (userId === undefined) return;
-
-    const selected = new Set(await getSelectedGames(ctx.env.DB, userId));
-    // Everything in the catalog, with the player's own games first — the point
-    // is to be able to reach any of them, not only the ones they signed up for.
-    const mine = visibleGames().filter((g) => selected.has(g.id));
-    const rest = visibleGames().filter((g) => !selected.has(g.id));
-    const line = (g: { emoji: string; label: string; url: string }) =>
-      `${g.emoji} ${g.label} — ${g.url}`;
-
-    const parts = [mine.length > 0 ? `Your games:\n${mine.map(line).join('\n')}` : ''];
-    if (rest.length > 0) parts.push(`Not playing:\n${rest.map(line).join('\n')}`);
-    parts.push('/games to change the list.');
-
-    await ctx.reply(parts.filter(Boolean).join('\n\n'), {
+    await ctx.reply(await linksText(ctx.env.DB, userId), {
       link_preview_options: { is_disabled: true },
     });
   });

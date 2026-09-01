@@ -24,13 +24,44 @@ function buildPeriodBoards(members: readonly MemberInfo[], scores: readonly Scor
   );
 }
 
+/**
+ * Renders the board for one group on one day. Shared by the nightly digest and
+ * the on-demand /board command, so the two can never drift apart.
+ */
+export async function renderDigest(
+  env: AppEnv,
+  group: { chat_id: number; title: string },
+  members: readonly MemberInfo[],
+  date: string,
+): Promise<string> {
+  const monthStart = `${date.slice(0, 7)}-01`;
+  const memberIds = new Set(members.map((m) => m.userId));
+
+  const [todayScores, periodScores] = await Promise.all([
+    getScoresForDate(env.DB, date),
+    getScoresBetween(env.DB, monthStart, date),
+  ]);
+
+  return formatDigest({
+    title: group.title,
+    playDate: date,
+    boards: buildBoards({
+      members,
+      scores: todayScores.filter((s) => memberIds.has(s.user_id)),
+      playDate: date,
+    }),
+    members,
+    periodBoards: buildPeriodBoards(members, periodScores.filter((s) => memberIds.has(s.user_id))),
+    periodLabel: 'This month',
+    eligible: eligibleDays(members, monthStart, date),
+  });
+}
+
 export async function postDigests(env: AppEnv, api: Api, now: Date): Promise<number> {
   const date = playDate(now);
   const hour = parisHour(now);
   // >= not ==, so a dropped tick at 21:00 does not cost the day's digest.
   const pastCutoff = hour >= Number(env.CUTOFF_HOUR);
-  const monthStart = `${date.slice(0, 7)}-01`;
-
   const [groups, membersByChat, todayScores] = await Promise.all([
     getActiveGroups(env.DB),
     getAllGroupMembers(env.DB),
@@ -38,7 +69,6 @@ export async function postDigests(env: AppEnv, api: Api, now: Date): Promise<num
   ]);
   if (groups.length === 0) return 0;
 
-  let periodScores: ScoreRow[] | null = null;
   let posted = 0;
 
   for (const group of groups) {
@@ -54,19 +84,7 @@ export async function postDigests(env: AppEnv, api: Api, now: Date): Promise<num
     if (!(await claimDigest(env.DB, group.chat_id, date))) continue;
 
     try {
-      periodScores ??= await getScoresBetween(env.DB, monthStart, date);
-      const text = formatDigest({
-        title: group.title,
-        playDate: date,
-        boards: buildBoards({ members, scores: groupScores, playDate: date }),
-        members,
-        periodBoards: buildPeriodBoards(
-          members,
-          periodScores.filter((s) => memberIds.has(s.user_id)),
-        ),
-        periodLabel: 'This month',
-        eligible: eligibleDays(members, monthStart, date),
-      });
+      const text = await renderDigest(env, group, members, date);
       const button = miniAppButton(env.BOT_USERNAME, env.MINIAPP_SHORT_NAME);
       await api.sendMessage(group.chat_id, text, {
         link_preview_options: { is_disabled: true },

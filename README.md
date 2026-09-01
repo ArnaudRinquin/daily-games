@@ -40,6 +40,7 @@ the cron, the API and the Mini App.
 | 🧶 Patches | yes | `patches` | https://lnkd.in/patches |
 | 📌 Pinpoint | yes | `pinpoint` | https://lnkd.in/pinpoint |
 | 🟩 Wordle | yes | `wordle` | https://www.nytimes.com/games/wordle/ |
+| 🧇 Waffle | yes | `waffle` | https://wafflegame.net/ |
 | 🧮 Fermi | yes | `fermi` | https://fermi.gg/ |
 | 📗 Table des Savoirs · Abordable | yes | `lts_abordable` | https://latabledessavoirs.fr/abordable |
 | 📕 Table des Savoirs · Expert | yes | `lts_expert` | https://latabledessavoirs.fr/difficile |
@@ -247,6 +248,19 @@ corpus instead of being scored wrongly and silently.
 **The share format differs by platform.** Web puts the score after a pipe on the
 header line; the iOS app puts it on the next line with no pipe. Both are
 covered, and the parser will not reach further down the message than that.
+
+**Group commands.** `/board` posts the current standings on demand and
+deliberately does *not* claim the day's digest, so asking at lunchtime does not
+cost you the evening post. `/links` and `/status` also work in a group.
+`/games`, `/time`, `/pause` and `/resume` stay DM-only: an inline keyboard
+posted in a group can be tapped by anyone, and the callback handlers key on
+whoever tapped — a second person would silently rewrite a shared message to
+show their own selection.
+
+**A group message is stored if it looks like anyone's result**, not only one we
+can parse — an emoji grid, or the `#game1684 0/5` shape. The first Waffle score
+ever posted was discarded because no Waffle parser existed yet, which is
+precisely the message the corpus is for.
 
 **Group ingestion needs privacy mode off.** People paste results into the group
 out of habit, and that used to fail invisibly — the bot could not even say so,

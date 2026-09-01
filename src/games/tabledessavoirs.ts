@@ -65,7 +65,8 @@ function tier(opts: {
       const correct =
         correctMatch?.[1] && correctMatch[2] ? ` (${correctMatch[1]}/${correctMatch[2]})` : '';
 
-      return { value: -points, display: `${points} pts${correct}` };
+      // Guard against negative zero, which Object.is treats as distinct from 0.
+      return { value: points === 0 ? 0 : -points, display: `${points} pts${correct}` };
     },
   };
 }
