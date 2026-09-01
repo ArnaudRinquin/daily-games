@@ -281,3 +281,61 @@ describe('reminders survive a sparse scheduler', () => {
     expect(sent).toHaveLength(0);
   });
 });
+
+describe('a digest missed overnight is caught up', () => {
+  beforeEach(seedGroup);
+
+  async function scoreOn(userId: number, date: string) {
+    await env.DB.prepare(
+      `INSERT INTO scores (user_id, game, play_date, value, display, raw, created_at)
+       VALUES (?, 'queens', ?, 11, '0:11', 'raw', 0)`,
+    )
+      .bind(userId, date)
+      .run();
+  }
+
+  test('yesterday still posts when no tick landed before the 04:00 rollover', async () => {
+    await scoreOn(1, '2026-09-04');
+    const { sent, api } = stubApi();
+    // First tick of the new day, 10:00 Paris on the 5th. Nothing ran overnight.
+    expect(await postDigests(env, api, AT('2026-09-05T08:00:00Z'))).toBe(1);
+    expect(sent[0]?.text).toContain('Friday 4 September');
+  });
+
+  test('the catch-up happens once, not on every later tick', async () => {
+    await scoreOn(1, '2026-09-04');
+    const { sent, api } = stubApi();
+    await postDigests(env, api, AT('2026-09-05T08:00:00Z'));
+    await postDigests(env, api, AT('2026-09-05T09:00:00Z'));
+    await postDigests(env, api, AT('2026-09-05T10:00:00Z'));
+    expect(sent).toHaveLength(1);
+  });
+
+  test('a day nobody played is not resurrected as an empty board', async () => {
+    const { sent, api } = stubApi();
+    expect(await postDigests(env, api, AT('2026-09-05T08:00:00Z'))).toBe(0);
+    expect(sent).toHaveLength(0);
+  });
+
+  test('yesterday is never re-posted once it already went out', async () => {
+    await scoreOn(1, '2026-09-04');
+    const { sent, api } = stubApi();
+    // Posted properly last night, after the cutoff.
+    await postDigests(env, api, AT('2026-09-04T19:30:00Z'));
+    expect(sent).toHaveLength(1);
+    // Next morning must not repeat it.
+    await postDigests(env, api, AT('2026-09-05T08:00:00Z'));
+    expect(sent).toHaveLength(1);
+  });
+
+  test('a catch-up and today can both land on one tick, oldest first', async () => {
+    await scoreOn(1, '2026-09-04');
+    await scoreOn(1, '2026-09-05');
+    await scoreOn(2, '2026-09-05');
+    const { sent, api } = stubApi();
+    // 21:30 Paris on the 5th: yesterday was missed, today is past cutoff.
+    expect(await postDigests(env, api, AT('2026-09-05T19:30:00Z'))).toBe(2);
+    expect(sent[0]?.text).toContain('4 September');
+    expect(sent[1]?.text).toContain('5 September');
+  });
+});

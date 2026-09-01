@@ -276,11 +276,22 @@ are both "message 5", so `messages` is keyed on `(chat_id, tg_message_id)`.
 single `db.batch`, so a message is never recorded as parsed without its scores
 landing too.
 
+**The scheduler is assumed to be unreliable.** GitHub Actions delivers
+scheduled runs late and sometimes not at all, so nothing depends on a tick
+landing in a particular hour: reminders fire at or after their hour, and a
+digest missed overnight is caught up the next day. Sparse ticks cost
+punctuality, not correctness.
+
 **Reminders fire at or after their hour, never only during it.** Matching the
 current hour exactly assumes a tick lands inside every single hour; miss 09:00
 and everyone set to 09:00 silently gets nothing that day. The `reminders` claim
 table still guarantees one per person per day, and nothing goes out after the
 digest cutoff.
+
+**A digest missed overnight is caught up.** The play date rolls over at 04:00,
+so without a backward look a day whose cutoff passed with no tick would never
+post at all. Each tick also considers yesterday, once, and only if somebody
+actually played.
 
 **Idempotency.** Cron delivery is at-least-once and fires four times an hour;
 completion and cutoff can both fire for the same day. `reminders` and `digests`

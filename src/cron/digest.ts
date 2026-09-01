@@ -7,7 +7,7 @@ import type { MemberInfo, ScoreRow } from '../db/types';
 import { buildBoards, eligibleDays, formatDigest, isComplete } from '../lib/digest';
 import type { DailyBoard } from '../lib/ranking';
 import { miniAppButton } from '../lib/miniapp';
-import { parisHour, playDate } from '../lib/time';
+import { addDays, parisHour, playDate } from '../lib/time';
 
 export const MAX_DIGESTS_PER_TICK = 5;
 
@@ -58,43 +58,59 @@ export async function renderDigest(
 }
 
 export async function postDigests(env: AppEnv, api: Api, now: Date): Promise<number> {
-  const date = playDate(now);
+  const today = playDate(now);
+  const yesterday = addDays(today, -1);
   const hour = parisHour(now);
   // >= not ==, so a dropped tick at 21:00 does not cost the day's digest.
   const pastCutoff = hour >= Number(env.CUTOFF_HOUR);
-  const [groups, membersByChat, todayScores] = await Promise.all([
+
+  const [groups, membersByChat, recentScores] = await Promise.all([
     getActiveGroups(env.DB),
     getAllGroupMembers(env.DB),
-    getScoresForDate(env.DB, date),
+    getScoresBetween(env.DB, yesterday, today),
   ]);
   if (groups.length === 0) return 0;
 
   let posted = 0;
 
   for (const group of groups) {
-    if (posted >= MAX_DIGESTS_PER_TICK) break;
-
     const members = membersByChat.get(group.chat_id) ?? [];
     const memberIds = new Set(members.map((m) => m.userId));
-    const groupScores = todayScores.filter((s) => memberIds.has(s.user_id));
 
-    if (!pastCutoff && !isComplete(members, groupScores)) continue;
+    // Yesterday first, so a catch-up and today's post arrive in order.
+    for (const date of [yesterday, today]) {
+      if (posted >= MAX_DIGESTS_PER_TICK) break;
 
-    // Claim before rendering: completion and cutoff can both fire for this day.
-    if (!(await claimDigest(env.DB, group.chat_id, date))) continue;
+      const dayScores = recentScores.filter(
+        (s) => s.play_date === date && memberIds.has(s.user_id),
+      );
 
-    try {
-      const text = await renderDigest(env, group, members, date);
-      const button = miniAppButton(env.BOT_USERNAME, env.MINIAPP_SHORT_NAME);
-      await api.sendMessage(group.chat_id, text, {
-        link_preview_options: { is_disabled: true },
-        ...(button ? { reply_markup: button } : {}),
-      });
-      posted++;
-    } catch (error) {
-      // Release the claim so the next tick retries.
-      await releaseDigest(env.DB, group.chat_id, date);
-      console.error('digest failed', { chatId: group.chat_id, error: String(error) });
+      if (date === yesterday) {
+        // Catch-up. The play date rolls over at 04:00, so if no tick landed
+        // between the cutoff and the rollover, yesterday's digest would
+        // otherwise never post at all — the failure mode of a sparse
+        // scheduler. Only worth posting if somebody actually played.
+        if (dayScores.length === 0) continue;
+      } else if (!pastCutoff && !isComplete(members, dayScores)) {
+        continue;
+      }
+
+      // Claim before rendering: completion and cutoff can both fire for a day.
+      if (!(await claimDigest(env.DB, group.chat_id, date))) continue;
+
+      try {
+        const text = await renderDigest(env, group, members, date);
+        const button = miniAppButton(env.BOT_USERNAME, env.MINIAPP_SHORT_NAME);
+        await api.sendMessage(group.chat_id, text, {
+          link_preview_options: { is_disabled: true },
+          ...(button ? { reply_markup: button } : {}),
+        });
+        posted++;
+      } catch (error) {
+        // Release the claim so the next tick retries.
+        await releaseDigest(env.DB, group.chat_id, date);
+        console.error('digest failed', { chatId: group.chat_id, date, error: String(error) });
+      }
     }
   }
   return posted;

@@ -1,29 +1,37 @@
-# Cloudflare's own Cron Triggers are configured in wrangler.jsonc and are the
-# intended scheduler. On this account they have never fired — the trigger is
-# registered, the handler is exported, and `* * * * *` is as silent as
-# `*/15 * * * *`. This workflow is the stand-in.
+# The scheduler. Cloudflare's own Cron Triggers are still configured in
+# wrangler.jsonc and are the intended mechanism, but on this account they have
+# never fired — the trigger is registered, the handler is exported and works
+# when invoked over HTTP, and `* * * * *` was as silent as `*/15 * * * *`.
 #
-# Running both is harmless: `reminders` and `digests` are claim tables, so a
-# doubled tick sends nothing twice. If Cloudflare's cron starts working, delete
-# this file.
+# GitHub's scheduler is best-effort: it delays runs under load and skips them
+# outright, so this asks every 5 minutes rather than every 15 to get more
+# chances. The bot is built to survive that — reminders fire at or after their
+# hour, and a digest missed overnight is caught up the next day — so sparse
+# ticks cost punctuality, not correctness.
 #
-# GitHub disables scheduled workflows on public repos after 60 days without
-# commits, so this is a stopgap rather than a permanent answer. cron-job.org or
-# any uptime pinger does the same job without that expiry.
+# ⚠️  GitHub disables scheduled workflows on public repos after 60 days with no
+# repository activity, and emails you first. If the bot goes quiet, check here.
+# A pinger such as cron-job.org has no such expiry.
 name: Cron
 
 on:
   schedule:
-    - cron: '*/15 * * * *'
+    - cron: '*/5 * * * *'
   workflow_dispatch:
+
+# Never queue up backlogged runs: a late tick does the same work as a fresh one.
+concurrency:
+  group: cron
+  cancel-in-progress: false
 
 jobs:
   tick:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Run a cron tick
         run: |
-          code=$(curl -sS -o /tmp/body -w '%{http_code}' -X POST \
+          code=$(curl -sS --max-time 60 -o /tmp/body -w '%{http_code}' -X POST \
             "${{ vars.WORKER_URL }}/admin/run-cron?source=external" \
             -H "X-Admin-Secret: ${{ secrets.ADMIN_SECRET }}")
           echo "HTTP $code"
