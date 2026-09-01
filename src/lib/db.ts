@@ -207,3 +207,79 @@ export async function getPlayerScores(
     .all<ScoreRow>();
   return results;
 }
+
+/**
+ * Logs a DM before anything is parsed. Returns false when this exact message
+ * was already stored, which is how a redelivered webhook is discarded.
+ *
+ * `matched_games` is a JSON array, or NULL when nothing recognised the text.
+ * The calibration query depends on that NULL:
+ *   SELECT text FROM messages WHERE matched_games IS NULL ORDER BY sent_at DESC;
+ */
+export async function logMessage(
+  db: D1Database,
+  msg: {
+    tgMessageId: number;
+    userId: number;
+    sentAt: number;
+    text: string;
+    matchedGames: string[];
+  },
+): Promise<boolean> {
+  const res = await db
+    .prepare(
+      `INSERT OR IGNORE INTO messages (tg_message_id, user_id, sent_at, text, matched_games)
+       VALUES (?, ?, ?, ?, ?)`,
+    )
+    .bind(
+      msg.tgMessageId,
+      msg.userId,
+      msg.sentAt,
+      msg.text,
+      msg.matchedGames.length > 0 ? JSON.stringify(msg.matchedGames) : null,
+    )
+    .run();
+  return res.meta.changes === 1;
+}
+
+/** Re-submitting a game overwrites that day's score. */
+export async function upsertScores(
+  db: D1Database,
+  userId: number,
+  playDate: string,
+  raw: string,
+  matches: readonly { game: string; value: number; display: string }[],
+): Promise<void> {
+  if (matches.length === 0) return;
+  const now = nowSeconds();
+  await db.batch(
+    matches.map((m) =>
+      db
+        .prepare(
+          `INSERT INTO scores (user_id, game, play_date, value, display, raw, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?)
+           ON CONFLICT (user_id, game, play_date) DO UPDATE SET
+             value = excluded.value,
+             display = excluded.display,
+             raw = excluded.raw,
+             created_at = excluded.created_at`,
+        )
+        .bind(userId, m.game, playDate, m.value, m.display, raw, now),
+    ),
+  );
+}
+
+/** Unparsed DMs, newest first — the calibration corpus. */
+export async function getUnmatchedMessages(
+  db: D1Database,
+  limit = 50,
+): Promise<{ text: string; sent_at: number }[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT text, sent_at FROM messages WHERE matched_games IS NULL
+       ORDER BY sent_at DESC LIMIT ?`,
+    )
+    .bind(limit)
+    .all<{ text: string; sent_at: number }>();
+  return results;
+}

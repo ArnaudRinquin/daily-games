@@ -1,6 +1,7 @@
 import { Bot } from 'grammy';
 import type { AppEnv } from '../env';
 import { registerGroups } from './groups';
+import { registerIngest } from './ingest';
 import { registerOnboarding } from './onboarding';
 import type { AppBot, AppContext } from './types';
 
@@ -16,6 +17,7 @@ export function createBot(env: AppEnv): AppBot {
 
   registerGroups(bot);
   registerOnboarding(bot);
+  registerIngest(bot);
 
   bot.catch((err) => {
     console.error('bot error', { update: err.ctx.update.update_id, error: String(err.error) });
