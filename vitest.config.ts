@@ -18,7 +18,7 @@ export default defineConfig({
             miniflare: {
               bindings: {
                 TEST_MIGRATIONS: migrations,
-                BOT_TOKEN: 'test-token',
+                BOT_TOKEN: '123456789:TESTTESTTESTTESTTESTTESTTESTTESTTES',
                 WEBHOOK_SECRET: 'test-secret',
               },
             },
