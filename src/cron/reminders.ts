@@ -32,6 +32,9 @@ function reminderText(firstName: string, games: readonly string[]): string {
 export async function sendReminders(env: AppEnv, api: Api, now: Date): Promise<number> {
   const hour = parisHour(now);
   const date = playDate(now);
+
+  // Past the digest cutoff the day is over; a reminder then is just noise.
+  if (hour >= Number(env.CUTOFF_HOUR)) return 0;
   const due = await getPlayersDue(env.DB, hour, date);
 
   let sent = 0;

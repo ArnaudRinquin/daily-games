@@ -276,6 +276,12 @@ are both "message 5", so `messages` is keyed on `(chat_id, tg_message_id)`.
 single `db.batch`, so a message is never recorded as parsed without its scores
 landing too.
 
+**Reminders fire at or after their hour, never only during it.** Matching the
+current hour exactly assumes a tick lands inside every single hour; miss 09:00
+and everyone set to 09:00 silently gets nothing that day. The `reminders` claim
+table still guarantees one per person per day, and nothing goes out after the
+digest cutoff.
+
 **Idempotency.** Cron delivery is at-least-once and fires four times an hour;
 completion and cutoff can both fire for the same day. `reminders` and `digests`
 are claim tables — claim first, send second, release the claim if the send

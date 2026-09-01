@@ -245,3 +245,39 @@ describe('postDigests', () => {
     expect(sent[0]?.hasButton).toBe(true);
   });
 });
+
+describe('reminders survive a sparse scheduler', () => {
+  beforeEach(async () => {
+    await ensurePlayer(env.DB, { id: 1, first_name: 'Alice' });
+    await setReminderHour(env.DB, 1, 9);
+  });
+
+  test('a tick hours late still delivers the reminder', async () => {
+    const { sent, api } = stubApi();
+    // Nothing ran at 09:00; the next tick is at 14:00 Paris.
+    expect(await sendReminders(env, api, AT('2026-09-05T12:00:00Z'))).toBe(1);
+    expect(sent).toHaveLength(1);
+  });
+
+  test('still only one reminder per person per day', async () => {
+    const { sent, api } = stubApi();
+    await sendReminders(env, api, AT('2026-09-05T12:00:00Z'));
+    await sendReminders(env, api, AT('2026-09-05T13:00:00Z'));
+    await sendReminders(env, api, AT('2026-09-05T15:00:00Z'));
+    expect(sent).toHaveLength(1);
+  });
+
+  test('nothing before their chosen hour', async () => {
+    const { sent, api } = stubApi();
+    // 06:00 Paris, well before 09:00.
+    expect(await sendReminders(env, api, AT('2026-09-05T04:00:00Z'))).toBe(0);
+    expect(sent).toHaveLength(0);
+  });
+
+  test('nothing after the digest cutoff — the day is over', async () => {
+    const { sent, api } = stubApi();
+    // 21:30 Paris.
+    expect(await sendReminders(env, api, AT('2026-09-05T19:30:00Z'))).toBe(0);
+    expect(sent).toHaveLength(0);
+  });
+});

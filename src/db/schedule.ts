@@ -30,8 +30,13 @@ export async function releaseReminder(
 }
 
 /**
- * Players due a reminder this hour who have not been sent one today, with
- * their selected games attached — one query, not one per player.
+ * Players due a reminder TODAY who have not been sent one, with their selected
+ * games attached — one query, not one per player.
+ *
+ * `reminder_hour <= hour`, not `=`. An exact match assumes a tick lands inside
+ * every single hour; miss the 09:00 hour and everyone set to 09:00 silently
+ * gets nothing that day. With `<=` a late tick still delivers, and the
+ * reminders table still guarantees exactly one per person per day.
  */
 export async function getPlayersDue(
   db: D1Database,
@@ -45,7 +50,7 @@ export async function getPlayersDue(
        FROM players p
        LEFT JOIN reminders r ON r.user_id = p.user_id AND r.play_date = ?
        LEFT JOIN player_games pg ON pg.user_id = p.user_id
-       WHERE p.active = 1 AND p.reminder_hour = ? AND r.user_id IS NULL
+       WHERE p.active = 1 AND p.reminder_hour <= ? AND r.user_id IS NULL
        ORDER BY p.user_id`,
     )
     .bind(playDate, hour)
