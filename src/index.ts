@@ -1,6 +1,8 @@
-import { webhookCallback } from 'grammy';
+import { Api, webhookCallback } from 'grammy';
 import { Hono } from 'hono';
 import { createBot } from './bot';
+import { postDigests } from './cron/digest';
+import { sendReminders } from './cron/reminders';
 import type { AppEnv } from './env';
 
 const app = new Hono<{ Bindings: AppEnv }>();
@@ -19,7 +21,15 @@ app.post('/telegram/webhook', async (c) => {
 
 export default {
   fetch: app.fetch,
-  async scheduled(_event: ScheduledController, _env: AppEnv, _ctx: ExecutionContext) {
-    // Phase 4: reminders + digest
+
+  async scheduled(_event: ScheduledController, env: AppEnv, _ctx: ExecutionContext) {
+    const now = new Date();
+    // A bare Api needs no getMe call, unlike a Bot that has to init.
+    const api = new Api(env.BOT_TOKEN);
+    const [sent, posted] = await Promise.all([
+      sendReminders(env, api, now),
+      postDigests(env, api, now),
+    ]);
+    if (sent > 0 || posted > 0) console.log('cron', { sent, posted });
   },
 } satisfies ExportedHandler<AppEnv>;

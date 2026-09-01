@@ -209,14 +209,16 @@ export async function getPlayerScores(
 }
 
 /**
- * Logs a DM before anything is parsed. Returns false when this exact message
- * was already stored, which is how a redelivered webhook is discarded.
- *
- * `matched_games` is a JSON array, or NULL when nothing recognised the text.
- * The calibration query depends on that NULL:
+ * Statement that logs a DM before anything is parsed. `matched_games` is a JSON
+ * array, or NULL when nothing recognised the text — the calibration query
+ * depends on that NULL:
  *   SELECT text FROM messages WHERE matched_games IS NULL ORDER BY sent_at DESC;
+ *
+ * Returned rather than executed so it can be batched with the score writes:
+ * D1 runs a batch as one transaction, so a message is never recorded as parsed
+ * without its scores landing too.
  */
-export async function logMessage(
+export function logMessageStatement(
   db: D1Database,
   msg: {
     tgMessageId: number;
@@ -225,8 +227,8 @@ export async function logMessage(
     text: string;
     matchedGames: string[];
   },
-): Promise<boolean> {
-  const res = await db
+): D1PreparedStatement {
+  return db
     .prepare(
       `INSERT OR IGNORE INTO messages (tg_message_id, user_id, sent_at, text, matched_games)
        VALUES (?, ?, ?, ?, ?)`,
@@ -237,35 +239,30 @@ export async function logMessage(
       msg.sentAt,
       msg.text,
       msg.matchedGames.length > 0 ? JSON.stringify(msg.matchedGames) : null,
-    )
-    .run();
-  return res.meta.changes === 1;
+    );
 }
 
 /** Re-submitting a game overwrites that day's score. */
-export async function upsertScores(
+export function scoreStatements(
   db: D1Database,
   userId: number,
   playDate: string,
   raw: string,
   matches: readonly { game: string; value: number; display: string }[],
-): Promise<void> {
-  if (matches.length === 0) return;
+): D1PreparedStatement[] {
   const now = nowSeconds();
-  await db.batch(
-    matches.map((m) =>
-      db
-        .prepare(
-          `INSERT INTO scores (user_id, game, play_date, value, display, raw, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?)
-           ON CONFLICT (user_id, game, play_date) DO UPDATE SET
-             value = excluded.value,
-             display = excluded.display,
-             raw = excluded.raw,
-             created_at = excluded.created_at`,
-        )
-        .bind(userId, m.game, playDate, m.value, m.display, raw, now),
-    ),
+  return matches.map((m) =>
+    db
+      .prepare(
+        `INSERT INTO scores (user_id, game, play_date, value, display, raw, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT (user_id, game, play_date) DO UPDATE SET
+           value = excluded.value,
+           display = excluded.display,
+           raw = excluded.raw,
+           created_at = excluded.created_at`,
+      )
+      .bind(userId, m.game, playDate, m.value, m.display, raw, now),
   );
 }
 
@@ -282,4 +279,190 @@ export async function getUnmatchedMessages(
     .bind(limit)
     .all<{ text: string; sent_at: number }>();
   return results;
+}
+
+/* --------------------------------------------------------------------- cron */
+
+export interface MemberInfo {
+  userId: number;
+  name: string;
+  active: boolean;
+  joinedAt: number;
+  /** Selected games, already filtered to those with a working parser. */
+  games: string[];
+}
+
+export async function getActiveGroups(db: D1Database): Promise<GroupRow[]> {
+  const { results } = await db
+    .prepare('SELECT * FROM groups WHERE active = 1 ORDER BY chat_id')
+    .all<GroupRow>();
+  return results;
+}
+
+/**
+ * Membership AND per-member game selection for every active group, in one
+ * query. The Workers free tier allows 50 D1 queries per invocation, so the
+ * cron must never issue a query per group or per player.
+ */
+export async function getAllGroupMembers(
+  db: D1Database,
+): Promise<Map<number, MemberInfo[]>> {
+  const { results } = await db
+    .prepare(
+      `SELECT m.chat_id, p.user_id, p.first_name, p.active, m.joined_at, pg.game
+       FROM memberships m
+       JOIN groups  g ON g.chat_id = m.chat_id AND g.active = 1
+       JOIN players p ON p.user_id = m.user_id
+       LEFT JOIN player_games pg ON pg.user_id = p.user_id
+       ORDER BY m.chat_id, p.first_name, p.user_id`,
+    )
+    .all<{
+      chat_id: number;
+      user_id: number;
+      first_name: string;
+      active: number;
+      joined_at: number;
+      game: string | null;
+    }>();
+
+  const visible = new Set(visibleGameIds());
+  const byChat = new Map<number, Map<number, MemberInfo>>();
+
+  for (const row of results) {
+    let members = byChat.get(row.chat_id);
+    if (!members) {
+      members = new Map();
+      byChat.set(row.chat_id, members);
+    }
+    let member = members.get(row.user_id);
+    if (!member) {
+      member = {
+        userId: row.user_id,
+        name: row.first_name,
+        active: row.active === 1,
+        joinedAt: row.joined_at,
+        games: [],
+      };
+      members.set(row.user_id, member);
+    }
+    if (row.game !== null && visible.has(row.game)) member.games.push(row.game);
+  }
+
+  return new Map([...byChat].map(([chatId, members]) => [chatId, [...members.values()]]));
+}
+
+export async function getScoresForDate(
+  db: D1Database,
+  playDate: string,
+): Promise<ScoreRow[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT user_id, game, play_date, value, display, raw
+       FROM scores WHERE play_date = ?`,
+    )
+    .bind(playDate)
+    .all<ScoreRow>();
+  return results;
+}
+
+export async function getScoresBetween(
+  db: D1Database,
+  fromDate: string,
+  toDate: string,
+): Promise<ScoreRow[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT user_id, game, play_date, value, display, raw
+       FROM scores WHERE play_date BETWEEN ? AND ?`,
+    )
+    .bind(fromDate, toDate)
+    .all<ScoreRow>();
+  return results;
+}
+
+/* ------------------------------------------------------- idempotency guards */
+
+/** True when this call claimed the send. Cron is at-least-once and fires 4x/hour. */
+export async function claimReminder(
+  db: D1Database,
+  userId: number,
+  playDate: string,
+): Promise<boolean> {
+  const res = await db
+    .prepare('INSERT OR IGNORE INTO reminders (user_id, play_date, sent_at) VALUES (?, ?, ?)')
+    .bind(userId, playDate, nowSeconds())
+    .run();
+  return res.meta.changes === 1;
+}
+
+/** Releases a claim so the next tick retries — call when the send failed. */
+export async function releaseReminder(
+  db: D1Database,
+  userId: number,
+  playDate: string,
+): Promise<void> {
+  await db
+    .prepare('DELETE FROM reminders WHERE user_id = ? AND play_date = ?')
+    .bind(userId, playDate)
+    .run();
+}
+
+/**
+ * Players due a reminder this hour who have not been sent one today, with
+ * their selected games attached — one query, not one per player.
+ */
+export async function getPlayersDue(
+  db: D1Database,
+  hour: number,
+  playDate: string,
+): Promise<{ player: PlayerRow; games: string[] }[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT p.user_id, p.username, p.first_name, p.reminder_hour, p.active, p.joined_at,
+              pg.game
+       FROM players p
+       LEFT JOIN reminders r ON r.user_id = p.user_id AND r.play_date = ?
+       LEFT JOIN player_games pg ON pg.user_id = p.user_id
+       WHERE p.active = 1 AND p.reminder_hour = ? AND r.user_id IS NULL
+       ORDER BY p.user_id`,
+    )
+    .bind(playDate, hour)
+    .all<PlayerRow & { game: string | null }>();
+
+  const visible = new Set(visibleGameIds());
+  const byUser = new Map<number, { player: PlayerRow; games: string[] }>();
+
+  for (const row of results) {
+    let entry = byUser.get(row.user_id);
+    if (!entry) {
+      const { game: _game, ...player } = row;
+      entry = { player, games: [] };
+      byUser.set(row.user_id, entry);
+    }
+    if (row.game !== null && visible.has(row.game)) entry.games.push(row.game);
+  }
+  return [...byUser.values()];
+}
+
+export async function claimDigest(
+  db: D1Database,
+  chatId: number,
+  playDate: string,
+): Promise<boolean> {
+  const res = await db
+    .prepare('INSERT OR IGNORE INTO digests (chat_id, play_date, posted_at) VALUES (?, ?, ?)')
+    .bind(chatId, playDate, nowSeconds())
+    .run();
+  return res.meta.changes === 1;
+}
+
+export async function releaseDigest(
+  db: D1Database,
+  chatId: number,
+  playDate: string,
+): Promise<void> {
+  await db
+    .prepare('DELETE FROM digests WHERE chat_id = ? AND play_date = ?')
+    .bind(chatId, playDate)
+    .run();
 }
