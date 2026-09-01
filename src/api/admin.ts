@@ -29,6 +29,20 @@ admin.use('/admin/*', async (c, next) => {
 
 /** The work one cron tick does. Also the scheduled handler's entire body. */
 export async function runCron(env: AppEnv, now: Date, source: 'schedule' | 'manual') {
+  const ranAt = Math.floor(now.getTime() / 1000);
+
+  // Record the tick BEFORE doing any work. Writing it afterwards meant a
+  // handler that threw left no trace, which is indistinguishable from a
+  // scheduler that never fired — the exact question this table exists to
+  // answer. Counts stay -1 until the work finishes, so an unfinished tick is
+  // visible as such.
+  const row = await env.DB.prepare(
+    `INSERT INTO cron_runs (ran_at, source, reminders_sent, digests_posted)
+     VALUES (?, ?, -1, -1) RETURNING id`,
+  )
+    .bind(ranAt, source)
+    .first<{ id: number }>();
+
   // A bare Api needs no getMe call, unlike a Bot that has to init.
   const api = new Api(env.BOT_TOKEN);
   const [sent, posted] = await Promise.all([
@@ -36,15 +50,10 @@ export async function runCron(env: AppEnv, now: Date, source: 'schedule' | 'manu
     postDigests(env, api, now),
   ]);
 
-  // Leave a trace even when the tick did nothing: otherwise a scheduler that
-  // never runs is indistinguishable from one that runs and finds no work.
   await env.DB.batch([
     env.DB
-      .prepare(
-        `INSERT INTO cron_runs (ran_at, source, reminders_sent, digests_posted)
-         VALUES (?, ?, ?, ?)`,
-      )
-      .bind(Math.floor(now.getTime() / 1000), source, sent, posted),
+      .prepare('UPDATE cron_runs SET reminders_sent = ?, digests_posted = ? WHERE id = ?')
+      .bind(sent, posted, row?.id ?? 0),
     env.DB.prepare('DELETE FROM cron_runs WHERE ran_at < unixepoch() - 604800'),
   ]);
 
