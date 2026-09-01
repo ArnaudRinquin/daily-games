@@ -5,6 +5,9 @@ import { createBot } from './bot';
 import { postDigests } from './cron/digest';
 import { sendReminders } from './cron/reminders';
 import type { AppEnv } from './env';
+import { parseAll } from './games/registry';
+import { replayUnmatched } from './lib/db';
+import { playDate } from './lib/time';
 
 const app = new Hono<{ Bindings: AppEnv }>();
 
@@ -64,6 +67,20 @@ app.post('/admin/run-cron', async (c) => {
     console.error('cron failed', { error: String(error) });
     return c.json({ error: String(error) }, 500);
   }
+});
+
+/** Re-scores messages that a since-fixed parser can now read. */
+app.post('/admin/replay', async (c) => {
+  const expected = c.env.WEBHOOK_SECRET;
+  const provided = c.req.header('X-Admin-Secret');
+  if (!expected || !provided || provided !== expected) {
+    return c.text('unauthorized', 401);
+  }
+  const result = await replayUnmatched(c.env.DB, parseAll, (sentAt) =>
+    playDate(new Date(sentAt * 1000)),
+  );
+  console.log('replay', result);
+  return c.json(result);
 });
 
 export default {

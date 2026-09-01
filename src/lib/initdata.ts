@@ -6,9 +6,12 @@
  *   expected = HMAC_SHA256(key = secret, message = data_check_string)
  *
  * `data_check_string` is every remaining parameter as `key=value`, sorted by
- * key, joined with newlines. Both `hash` and `signature` are excluded —
- * `signature` is Telegram's newer third-party-validation field, and leaving it
- * in makes every check fail with no visible reason.
+ * key, joined with newlines, excluding ONLY `hash`.
+ *
+ * `signature` — Telegram's newer Ed25519 field for third-party validation — is
+ * part of the signed set and must stay in. Excluding it was a real bug here:
+ * every Mini App launch failed with `bad-hash`, because live initData carries
+ * `signature` and Telegram hashed over it.
  *
  * Workers has no Node crypto, so this is crypto.subtle throughout.
  */
@@ -66,7 +69,7 @@ export type VerifyFailure =
 
 export type VerifyResult =
   | { ok: true; data: VerifiedInitData }
-  | { ok: false; reason: VerifyFailure; keys?: string[] };
+  | { ok: false; reason: VerifyFailure; keys?: string[]; legacyWouldMatch?: boolean };
 
 /**
  * Detailed result, for server-side logging only. The reason must never reach
@@ -90,16 +93,26 @@ export async function verifyInitDataDetailed(
   const hash = params.get('hash');
   if (!hash) return { ok: false, reason: 'no-hash', keys };
 
-  const checkString = [...params.entries()]
-    .filter(([key]) => key !== 'hash' && key !== 'signature')
-    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
-    .map(([key, value]) => `${key}=${value}`)
-    .join('\n');
+  const buildCheckString = (drop: readonly string[]) =>
+    [...params.entries()]
+      .filter(([key]) => !drop.includes(key))
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+      .map(([key, value]) => `${key}=${value}`)
+      .join('\n');
 
   const secret = await hmac(encoder.encode('WebAppData'), botToken);
-  const expected = toHex(await hmac(secret, checkString));
+  const expected = toHex(await hmac(secret, buildCheckString(['hash'])));
+
   if (!timingSafeEqual(expected, hash.toLowerCase())) {
-    return { ok: false, reason: 'bad-hash', keys };
+    // Diagnostic only: says whether dropping `signature` too would have
+    // matched, which is the one ambiguity in the spec worth being sure about.
+    const legacy = toHex(await hmac(secret, buildCheckString(['hash', 'signature'])));
+    return {
+      ok: false,
+      reason: 'bad-hash',
+      keys,
+      legacyWouldMatch: timingSafeEqual(legacy, hash.toLowerCase()),
+    };
   }
 
   const authDate = Number(params.get('auth_date'));

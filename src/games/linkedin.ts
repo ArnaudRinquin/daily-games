@@ -2,10 +2,13 @@ import type { GameParser, ParsedScore } from './types';
 import { timeToSeconds } from './util';
 
 /**
- * The LinkedIn puzzles share one shape, confirmed against real pasted text:
+ * The LinkedIn puzzles share one shape, confirmed against real pasted text —
+ * but the separator differs by platform. Web puts the score on the header line
+ * after a pipe; the iOS app puts it on the next line with no pipe at all:
  *
- *   Queens #854 | 0:11 👑
- *   lnkd.in/queens.
+ *   Queens #854 | 0:11 👑        Zip #533
+ *   lnkd.in/queens.              0:05 🏁
+ *                                🏅 I'm smarter than 90% of CEOs today!
  *
  * Most are timed; Pinpoint counts guesses. Some (Mini Sudoku) add a blurb line
  * under the header, so the score must be read off the header line itself.
@@ -28,7 +31,10 @@ function timedGame(opts: {
 }): GameParser {
   const header = HEADER(opts.label);
   const scoreLine = new RegExp(
-    `^[^\\S\\n]*${opts.label}\\s*#?\\s*[\\d,.\\s]*\\|\\s*(\\d{1,2}:\\d{2}(?::\\d{2})?)`,
+    // <name> …anything but a pipe or newline… then EITHER a pipe OR a line
+    // break, then the time. The trailing class is horizontal whitespace only,
+    // so the score must be the very next thing — never a time further down.
+    `^[^\\S\\n]*${opts.label}\\b[^\\n|]*(?:\\||\\n)[^\\S\\n]*(\\d{1,2}:\\d{2}(?::\\d{2})?)`,
     'im',
   );
   return {
@@ -95,7 +101,8 @@ export const patches = timedGame({
 
 /**
  * Pinpoint is scored in guesses (1 best, 5 worst) — already lower-is-better.
- * Real text: `Pinpoint #854 | 2 guesses with no mistakes`.
+ * Real text: `Pinpoint #854 | 2 guesses with no mistakes`. Same two-platform
+ * separator problem as the timed games.
  */
 export const pinpoint: GameParser = {
   id: 'pinpoint',
@@ -104,7 +111,9 @@ export const pinpoint: GameParser = {
   emoji: '📌',
   detect: (text) => HEADER('Pinpoint').test(text),
   parse(text): ParsedScore | null {
-    const m = /^[^\S\n]*Pinpoint\s*#?\s*[\d,.\s]*\|\s*(\d+)\s*(?:guess(?:es)?|\/\s*5)/im.exec(text);
+    const m = /^[^\S\n]*Pinpoint\b[^\n|]*(?:\||\n)[^\S\n]*(\d+)\s*(?:guess(?:es)?|\/\s*5)/im.exec(
+      text,
+    );
     if (!m?.[1]) return null;
     const guesses = Number(m[1]);
     if (!Number.isInteger(guesses) || guesses < 1 || guesses > 5) return null;

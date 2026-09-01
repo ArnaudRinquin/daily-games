@@ -23,6 +23,7 @@ export async function requireViewer(c: ApiContext, next: Next): Promise<Response
       reason: result.reason,
       keys: result.keys ?? [],
       length: initData.length,
+      legacyWouldMatch: result.legacyWouldMatch ?? null,
     });
     return c.json({ error: 'unauthorized' }, 401);
   }

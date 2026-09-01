@@ -48,6 +48,52 @@ describe('real share text, one game at a time', () => {
   }
 });
 
+/**
+ * The iOS app shares a different shape from the web: the score goes on its own
+ * line with no pipe. Text below is byte-for-byte what the bot received.
+ */
+const IOS = {
+  zip: "Zip #533\n0:05 \u{1F3C1}\n\u{1F3C5} I\u2019m smarter than 90% of CEOs today!\n#AreYouSmarterThanaCEO\nlnkd.in/zip.",
+};
+
+describe('iOS share format', () => {
+  test('reads a score from the line below the header', () => {
+    expect(parseAll(IOS.zip)).toEqual([{ game: 'zip', value: 5, display: '0:05' }]);
+  });
+
+  test('the CEO brag line and hashtag do not confuse it', () => {
+    expect(parseAll(IOS.zip)).toHaveLength(1);
+  });
+
+  test('both platform shapes agree on the same result', () => {
+    expect(parseAll(IOS.zip)).toEqual(parseAll(SAMPLES.zip));
+  });
+
+  test('a header with no score below it is still rejected', () => {
+    expect(parseAll('Zip #533\nlnkd.in/zip.')).toEqual([]);
+  });
+
+  test('a time further down the message is not picked up', () => {
+    // Only the line immediately after the header counts.
+    expect(parseAll('Zip #533\nsome chatter\n0:05')).toEqual([]);
+  });
+
+  test('a whole iOS day still splits per game', () => {
+    const day = [
+      'Queens #854\n0:11 \u{1F451}\nlnkd.in/queens.',
+      'Tango #694\n0:33 \u{1F317}\nlnkd.in/tango.',
+      IOS.zip,
+      'Pinpoint #854\n2 guesses with no mistakes\nlnkd.in/pinpoint.',
+    ].join('\n\n');
+    expect(parseAll(day)).toEqual([
+      { game: 'queens', value: 11, display: '0:11' },
+      { game: 'tango', value: 33, display: '0:33' },
+      { game: 'zip', value: 5, display: '0:05' },
+      { game: 'pinpoint', value: 2, display: '2/5' },
+    ]);
+  });
+});
+
 describe('awkward shapes in the real text', () => {
   test("Mini Sudoku's blurb line does not break the header parse", () => {
     expect(parseAll(SAMPLES.minisudoku)[0]?.value).toBe(54);
