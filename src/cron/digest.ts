@@ -115,3 +115,52 @@ export async function postDigests(env: AppEnv, api: Api, now: Date): Promise<num
   }
   return posted;
 }
+
+/**
+ * Posts the digest for any of this player's groups that just became complete.
+ *
+ * Called straight after a score is stored, so the common case — everyone has
+ * played, the board goes up — never waits for a scheduler at all. That matters
+ * because two schedulers have now proved unreliable here; the cron is reduced
+ * to covering the 21:00 cutoff, when somebody has NOT played.
+ *
+ * Same claim table as the cron, so the two cannot double-post.
+ */
+export async function postCompletedDigests(
+  env: AppEnv,
+  api: Api,
+  userId: number,
+  date: string,
+): Promise<number> {
+  const [membersByChat, groups, dayScores] = await Promise.all([
+    getAllGroupMembers(env.DB),
+    getActiveGroups(env.DB),
+    getScoresForDate(env.DB, date),
+  ]);
+
+  let posted = 0;
+  for (const group of groups) {
+    const members = membersByChat.get(group.chat_id) ?? [];
+    // Only the groups this player is actually in can have changed.
+    if (!members.some((m) => m.userId === userId)) continue;
+
+    const memberIds = new Set(members.map((m) => m.userId));
+    const groupScores = dayScores.filter((s) => memberIds.has(s.user_id));
+    if (!isComplete(members, groupScores)) continue;
+
+    if (!(await claimDigest(env.DB, group.chat_id, date))) continue;
+    try {
+      const text = await renderDigest(env, group, members, date);
+      const button = miniAppButton(env.BOT_USERNAME, env.MINIAPP_SHORT_NAME);
+      await api.sendMessage(group.chat_id, text, {
+        link_preview_options: { is_disabled: true },
+        ...(button ? { reply_markup: button } : {}),
+      });
+      posted++;
+    } catch (error) {
+      await releaseDigest(env.DB, group.chat_id, date);
+      console.error('completion digest failed', { chatId: group.chat_id, error: String(error) });
+    }
+  }
+  return posted;
+}

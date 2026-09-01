@@ -276,6 +276,14 @@ are both "message 5", so `messages` is keyed on `(chat_id, tg_message_id)`.
 single `db.batch`, so a message is never recorded as parsed without its scores
 landing too.
 
+**The digest does not wait for a scheduler in the common case.** Completion is
+checked when a score is stored, so the moment the last person submits, the board
+goes up. The cron only has to cover the 21:00 cutoff — the case where somebody
+has *not* played. Both paths share the `digests` claim table, so they cannot
+double-post. This exists because two independent schedulers proved unreliable
+here: Cloudflare's Cron Triggers never fired at all, and GitHub Actions
+delivered two scheduled runs in six hours.
+
 **The scheduler is assumed to be unreliable.** GitHub Actions delivers
 scheduled runs late and sometimes not at all, so nothing depends on a tick
 landing in a particular hour: reminders fire at or after their hour, and a

@@ -212,3 +212,60 @@ describe('/join fallback', () => {
     expect((await getMemberGroups(env.DB, 555)).map((g) => g.chat_id)).toEqual([-100]);
   });
 });
+
+describe('the digest posts the moment the group completes', () => {
+  const OTHER = { id: 556, is_bot: false, first_name: 'Jimmy' };
+
+  function dmFrom(user: typeof OTHER, text: string): Update {
+    seq++;
+    return {
+      update_id: seq,
+      message: {
+        message_id: seq,
+        date: AT,
+        chat: { id: user.id, type: 'private', first_name: user.first_name },
+        from: user,
+        text,
+      },
+    } as unknown as Update;
+  }
+
+  beforeEach(async () => {
+    await upsertGroup(env.DB, -100, 'Puzzle Crew');
+  });
+
+  test('the last submission triggers it, with no cron involved', async () => {
+    const { bot, sent } = testBot();
+    await bot.handleUpdate(command(`/start ${encodeGroupPayload(-100)}`));
+    await bot.handleUpdate({
+      ...(command(`/start ${encodeGroupPayload(-100)}`) as { update_id: number }),
+      update_id: ++seq,
+      message: {
+        message_id: ++seq,
+        date: AT,
+        chat: { id: OTHER.id, type: 'private', first_name: 'Jimmy' },
+        from: OTHER,
+        text: `/start ${encodeGroupPayload(-100)}`,
+        entities: [{ offset: 0, length: 6, type: 'bot_command' }],
+      },
+    } as unknown as Update);
+
+    // Arnaud plays: group not complete yet, nothing posted to the chat.
+    await bot.handleUpdate(dm('Zip #533\n0:05 🏁'));
+    expect(sent().some((c) => c.payload.chat_id === -100)).toBe(false);
+
+    // Jimmy plays: that completes the group.
+    await bot.handleUpdate(dmFrom(OTHER, 'Zip #533\n0:12 🏁'));
+    const toGroup = sent().filter((c) => c.payload.chat_id === -100);
+    expect(toGroup).toHaveLength(1);
+    expect(String(toGroup[0]?.payload.text)).toContain('Zip');
+  });
+
+  test('it posts once, not again on the next submission', async () => {
+    const { bot, sent } = testBot();
+    await bot.handleUpdate(command(`/start ${encodeGroupPayload(-100)}`));
+    await bot.handleUpdate(dm('Zip #533\n0:05 🏁'));
+    await bot.handleUpdate(dm('Queens #854\n0:11 👑'));
+    expect(sent().filter((c) => c.payload.chat_id === -100)).toHaveLength(1);
+  });
+});

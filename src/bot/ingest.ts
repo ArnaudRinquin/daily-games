@@ -3,6 +3,7 @@ import { addMembership, upsertGroup } from '../db/groups';
 import { logMessageStatement } from '../db/messages';
 import { ensurePlayerSeen } from '../db/players';
 import { getPlayerScores, scoreStatements } from '../db/scores';
+import { postCompletedDigests } from '../cron/digest';
 import { playDate } from '../lib/time';
 import type { AppBot, AppContext } from './types';
 
@@ -104,6 +105,9 @@ export function registerIngest(bot: AppBot): void {
       `${ackLines(matches)}${date === today ? '' : `\n(counted for ${date})`}\n\n` +
         `${stored.length} logged for ${date}. Results go up in the group tonight.`,
     );
+
+    // This submission may have been the last one missing.
+    await postCompletedDigests(ctx.env, ctx.api, userId, date);
   });
 
   // ------------------------------------------------------------- group path
@@ -153,5 +157,8 @@ export function registerIngest(bot: AppBot): void {
     } catch {
       // Never started the bot, or blocked it. The score still counts.
     }
+
+    // This submission may have been the last one missing.
+    await postCompletedDigests(ctx.env, ctx.api, from.id, date);
   });
 }

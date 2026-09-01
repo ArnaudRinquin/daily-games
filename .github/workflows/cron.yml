@@ -4,8 +4,9 @@
 # when invoked over HTTP, and `* * * * *` was as silent as `*/15 * * * *`.
 #
 # GitHub's scheduler is best-effort: it delays runs under load and skips them
-# outright, so this asks every 5 minutes rather than every 15 to get more
-# chances. The bot is built to survive that — reminders fire at or after their
+# outright — it delivered two runs in six hours here, and asking every 5 minutes
+# made it no better, since high-frequency schedules are deprioritised. The bot
+# is built to survive that — reminders fire at or after their
 # hour, and a digest missed overnight is caught up the next day — so sparse
 # ticks cost punctuality, not correctness.
 #
@@ -16,7 +17,7 @@ name: Cron
 
 on:
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: '*/15 * * * *'
   workflow_dispatch:
 
 # Never queue up backlogged runs: a late tick does the same work as a fresh one.
