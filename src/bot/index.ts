@@ -13,9 +13,19 @@ export type { AppBot, AppContext } from './types';
  * on every single webhook update: one wasted subrequest against the free tier's
  * 50, and one more way for an update to fail and be retried.
  *
- * The bot's numeric id is the part of the token before the colon.
+ * The bot's numeric id is the part of the token before the colon. The username
+ * has to be configured, and it is load-bearing: every group deep link is built
+ * from it, so a wrong value posts links that look right and open nothing.
+ * `getMe` used to make that self-correcting; supplying botInfo does not, hence
+ * the hard check.
  */
 function botInfo(env: AppEnv): UserFromGetMe {
+  if (!env.BOT_USERNAME) {
+    throw new Error(
+      'BOT_USERNAME is not set in wrangler.jsonc. Every group invite link is ' +
+        'built from it. Run `pnpm setup`, or set it to the bot\'s @name and redeploy.',
+    );
+  }
   return {
     id: Number(env.BOT_TOKEN.split(':')[0]),
     is_bot: true,

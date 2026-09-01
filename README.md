@@ -45,6 +45,11 @@ reads as a broken bot rather than an unfinished setup.
 ### Doing it by hand
 
 ```bash
+# BOT_USERNAME first: every group invite link is built from it, and a wrong
+# value posts links that look right and open nothing. The Worker refuses to
+# start while it is empty.
+#   wrangler.jsonc -> "BOT_USERNAME": "your_bot"
+
 pnpm exec wrangler d1 create daily-games      # paste database_id into wrangler.jsonc
 pnpm db:remote                                 # schema
 pnpm exec wrangler secret put BOT_TOKEN
@@ -54,8 +59,6 @@ curl "https://api.telegram.org/bot<TOKEN>/setWebhook" \
   -d "url=https://<worker>/telegram/webhook" \
   -d "secret_token=<WEBHOOK_SECRET>"
 ```
-
-Set `BOT_USERNAME` in `wrangler.jsonc` to match the bot.
 
 ### Dev
 
@@ -130,7 +133,9 @@ update with nothing left to do.
 
 **`botInfo` is supplied, not fetched.** Otherwise grammY calls `getMe` on every
 single update: a wasted subrequest against the free tier's 50, and one more way
-for an update to fail.
+for an update to fail. The trade is that `BOT_USERNAME` becomes load-bearing —
+it is what every group deep link is built from — so the Worker throws while it
+is empty rather than posting links that open nothing.
 
 **Ingestion is one transaction.** The message log and the score writes go in a
 single `db.batch`, so a message is never recorded as parsed without its scores

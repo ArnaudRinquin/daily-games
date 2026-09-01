@@ -1,4 +1,4 @@
-import { SELF } from 'cloudflare:test';
+import { SELF, env } from 'cloudflare:test';
 import { describe, expect, test } from 'vitest';
 
 describe('webhook auth', () => {
@@ -52,5 +52,23 @@ describe('webhook fails closed', () => {
       body: '{}',
     });
     expect(res.status).toBe(401);
+  });
+});
+
+describe('configuration guards', () => {
+  test('BOT_USERNAME is load-bearing and must be set', async () => {
+    const { createBot } = await import('../../src/bot');
+    // Every group invite link is built from the username, so an empty one has
+    // to be loud rather than producing links that open nothing.
+    expect(() => createBot({ ...env, BOT_USERNAME: '' } as unknown as typeof env)).toThrow(
+      /BOT_USERNAME/,
+    );
+  });
+
+  test('a configured username builds the bot fine', async () => {
+    const { createBot } = await import('../../src/bot');
+    expect(() =>
+      createBot({ ...env, BOT_USERNAME: 'daily_games_bot' } as unknown as typeof env),
+    ).not.toThrow();
   });
 });
