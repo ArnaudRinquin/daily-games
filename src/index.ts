@@ -1,5 +1,6 @@
 import { Api, webhookCallback } from 'grammy';
 import { Hono } from 'hono';
+import { api } from './api/leaderboard';
 import { createBot } from './bot';
 import { postDigests } from './cron/digest';
 import { sendReminders } from './cron/reminders';
@@ -8,6 +9,8 @@ import type { AppEnv } from './env';
 const app = new Hono<{ Bindings: AppEnv }>();
 
 app.get('/health', (c) => c.json({ ok: true }));
+
+app.route('/', api);
 
 app.post('/telegram/webhook', async (c) => {
   // Checked before anything else is constructed: an unauthenticated request

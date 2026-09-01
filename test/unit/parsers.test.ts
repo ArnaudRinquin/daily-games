@@ -12,6 +12,8 @@ describe('catalog', () => {
       'zip',
       'wend',
       'crossclimb',
+      'minisudoku',
+      'patches',
       'pinpoint',
       'wordle',
       'fermi',
