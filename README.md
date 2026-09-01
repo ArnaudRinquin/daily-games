@@ -18,31 +18,44 @@ pnpm exec wrangler deploy --dry-run
 
 ## Setup
 
-Steps 2 and 5 fail silently if skipped.
+```bash
+pnpm install
+pnpm exec wrangler login   # interactive, opens a browser
+pnpm setup                 # everything else
+```
 
-1. BotFather `/newbot` → keep the token.
-2. BotFather `/newapp` → point at the Workers URL and note the **short name**;
-   put it in `MINIAPP_SHORT_NAME` in `wrangler.jsonc`. Leaderboard buttons do
-   nothing at all until this exists.
-3. `wrangler d1 create daily-games` → paste `database_id` into `wrangler.jsonc`
-   → `pnpm db:remote`.
-4. `wrangler secret put BOT_TOKEN`, `wrangler secret put WEBHOOK_SECRET`.
-5. `wrangler deploy`, then register the webhook **with the secret**:
-   ```bash
-   curl "https://api.telegram.org/bot<TOKEN>/setWebhook" \
-     -d "url=https://<worker>/telegram/webhook" \
-     -d "secret_token=<WEBHOOK_SECRET>"
-   ```
+`pnpm setup` is safe to re-run. It checks your Cloudflare login, validates the
+bot token against `getMe`, creates the D1 database and writes its id into
+`wrangler.jsonc`, applies the schema, generates and stores `WEBHOOK_SECRET`,
+builds the Mini App, deploys, and registers the webhook with
+`allowed_updates` scoped to what the bot actually handles.
 
-Set `BOT_USERNAME` and `MINIAPP_SHORT_NAME` in `wrangler.jsonc` to match the
-bot. `MINIAPP_SHORT_NAME` has **no default on purpose**: an unregistered short
-name produces a `t.me` link that silently resolves to nothing, which reads as a
-broken bot rather than an unfinished setup. While it is empty, no leaderboard
-button is attached anywhere.
+It leaves exactly one manual step, because only BotFather can do it:
 
-The leaderboard button is a plain URL button pointing at
-`https://t.me/<bot>/<short name>`, not a `web_app` button: `web_app` inline
-buttons only work in private chats, and the digest is posted to a group.
+1. @BotFather → `/newapp` → pick your bot
+2. Web App URL: the `workers.dev` URL the script prints
+3. Copy the **short name** it gives you into `MINIAPP_SHORT_NAME` in
+   `wrangler.jsonc`, then `pnpm run deploy`
+
+Until that is done the bot works normally; there is simply no leaderboard
+button. `MINIAPP_SHORT_NAME` has **no default on purpose**: an unregistered
+short name produces a `t.me` link that silently resolves to nothing, which
+reads as a broken bot rather than an unfinished setup.
+
+### Doing it by hand
+
+```bash
+pnpm exec wrangler d1 create daily-games      # paste database_id into wrangler.jsonc
+pnpm db:remote                                 # schema
+pnpm exec wrangler secret put BOT_TOKEN
+pnpm exec wrangler secret put WEBHOOK_SECRET
+pnpm run deploy                                # note the workers.dev URL
+curl "https://api.telegram.org/bot<TOKEN>/setWebhook" \
+  -d "url=https://<worker>/telegram/webhook" \
+  -d "secret_token=<WEBHOOK_SECRET>"
+```
+
+Set `BOT_USERNAME` in `wrangler.jsonc` to match the bot.
 
 ### Dev
 
@@ -50,8 +63,9 @@ Webhooks need a public URL, so dev is a second BotFather bot deployed to its own
 Worker rather than a tunnel:
 
 ```bash
-wrangler deploy --env dev
-wrangler secret put BOT_TOKEN --env dev
+cp .dev.vars.example .dev.vars     # for `wrangler dev` only
+pnpm exec wrangler deploy --env dev
+pnpm exec wrangler secret put BOT_TOKEN --env dev
 ```
 
 ## Design notes
@@ -105,6 +119,18 @@ fixing it would mean snapshotting the field per day in its own table.
 completion and cutoff can both fire for the same day. `reminders` and `digests`
 are claim tables — claim first, send second, release the claim if the send
 throws so the next tick retries.
+
+**The webhook fails closed and answers 200.** A plain `provided !== expected`
+compares `undefined` to `undefined` when the secret is unset — false — so an
+unconfigured Worker would accept every request. Both sides must be present.
+Separately, grammY does *not* route errors through `bot.catch` in webhook mode,
+so the route catches: every DB write commits before a reply is attempted, and
+ingestion is idempotent, so a non-2xx would only make Telegram redeliver an
+update with nothing left to do.
+
+**`botInfo` is supplied, not fetched.** Otherwise grammY calls `getMe` on every
+single update: a wasted subrequest against the free tier's 50, and one more way
+for an update to fail.
 
 **Ingestion is one transaction.** The message log and the score writes go in a
 single `db.batch`, so a message is never recorded as parsed without its scores

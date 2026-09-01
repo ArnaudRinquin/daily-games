@@ -13,13 +13,27 @@ app.get('/health', (c) => c.json({ ok: true }));
 app.route('/', api);
 
 app.post('/telegram/webhook', async (c) => {
-  // Checked before anything else is constructed: an unauthenticated request
-  // must not be able to make us do work.
-  if (c.req.header('X-Telegram-Bot-Api-Secret-Token') !== c.env.WEBHOOK_SECRET) {
+  // Fail closed. A plain `provided !== expected` compares undefined to
+  // undefined when the secret is unset, which is false — so an unconfigured
+  // Worker would accept every unauthenticated request. Both sides must be
+  // present and non-empty before anything else is constructed.
+  const expected = c.env.WEBHOOK_SECRET;
+  const provided = c.req.header('X-Telegram-Bot-Api-Secret-Token');
+  if (!expected || !provided || provided !== expected) {
     return c.text('unauthorized', 401);
   }
   const bot = createBot(c.env);
-  return webhookCallback(bot, 'hono', { secretToken: c.env.WEBHOOK_SECRET })(c);
+  try {
+    return await webhookCallback(bot, 'hono', { secretToken: expected })(c);
+  } catch (error) {
+    // grammY does NOT route errors through bot.catch in webhook mode — they
+    // propagate here. Answer 200 anyway: every DB write commits before the
+    // reply is attempted, so the data is already safe, and ingestion is
+    // idempotent. A non-2xx would only make Telegram redeliver an update that
+    // has nothing left to do.
+    console.error('webhook handler failed', { error: String(error) });
+    return c.text('ok');
+  }
 });
 
 export default {
