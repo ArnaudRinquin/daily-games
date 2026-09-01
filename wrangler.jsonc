@@ -23,7 +23,7 @@
   ],
 
   "vars": {
-    "BOT_USERNAME": "",
+    "BOT_USERNAME": "DailyGamesScores_Bot",
     "MINIAPP_SHORT_NAME": "",
     "TZ_NAME": "Europe/Paris",
     "CUTOFF_HOUR": "21",
@@ -44,7 +44,7 @@
         {
           "binding": "DB",
           "database_name": "daily-games-dev",
-          "database_id": "PLACEHOLDER_RUN_wrangler_d1_create"
+          "database_id": "8e72b8d1-45b2-48f1-a33c-def4ff869460"
         }
       ]
     }
