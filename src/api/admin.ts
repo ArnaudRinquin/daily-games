@@ -28,7 +28,9 @@ admin.use('/admin/*', async (c, next) => {
 });
 
 /** The work one cron tick does. Also the scheduled handler's entire body. */
-export async function runCron(env: AppEnv, now: Date, source: 'schedule' | 'manual') {
+export type CronSource = 'schedule' | 'external' | 'manual';
+
+export async function runCron(env: AppEnv, now: Date, source: CronSource) {
   const ranAt = Math.floor(now.getTime() / 1000);
 
   // Record the tick BEFORE doing any work. Writing it afterwards meant a
@@ -62,8 +64,11 @@ export async function runCron(env: AppEnv, now: Date, source: 'schedule' | 'manu
 }
 
 admin.post('/admin/run-cron', async (c) => {
+  // Labelled so `cron_runs` can tell a scheduler apart from a human poking it.
+  const requested = c.req.query('source');
+  const source: CronSource = requested === 'external' ? 'external' : 'manual';
   try {
-    return c.json(await runCron(c.env, new Date(), 'manual'));
+    return c.json(await runCron(c.env, new Date(), source));
   } catch (error) {
     console.error('cron failed', { error: String(error) });
     return c.json({ error: String(error) }, 500);

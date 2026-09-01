@@ -1,0 +1,32 @@
+# Cloudflare's own Cron Triggers are configured in wrangler.jsonc and are the
+# intended scheduler. On this account they have never fired — the trigger is
+# registered, the handler is exported, and `* * * * *` is as silent as
+# `*/15 * * * *`. This workflow is the stand-in.
+#
+# Running both is harmless: `reminders` and `digests` are claim tables, so a
+# doubled tick sends nothing twice. If Cloudflare's cron starts working, delete
+# this file.
+#
+# GitHub disables scheduled workflows on public repos after 60 days without
+# commits, so this is a stopgap rather than a permanent answer. cron-job.org or
+# any uptime pinger does the same job without that expiry.
+name: Cron
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run a cron tick
+        run: |
+          code=$(curl -sS -o /tmp/body -w '%{http_code}' -X POST \
+            "${{ vars.WORKER_URL }}/admin/run-cron?source=external" \
+            -H "X-Admin-Secret: ${{ secrets.ADMIN_SECRET }}")
+          echo "HTTP $code"
+          cat /tmp/body
+          # A non-2xx must fail the job, or a broken scheduler looks healthy.
+          [ "$code" = "200" ]
