@@ -1,0 +1,50 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "daily-games",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-15",
+  "observability": { "enabled": true },
+
+  "triggers": { "crons": ["*/15 * * * *"] },
+
+  "assets": {
+    "directory": "./web/dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*", "/telegram/*"]
+  },
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "daily-games",
+      "database_id": "PLACEHOLDER_RUN_wrangler_d1_create"
+    }
+  ],
+
+  "vars": {
+    "BOT_USERNAME": "daily_games_bot",
+    "TZ_NAME": "Europe/Paris",
+    "CUTOFF_HOUR": "21",
+    "DAY_ROLLOVER_HOUR": "4"
+  },
+
+  "env": {
+    "dev": {
+      "name": "daily-games-dev",
+      "vars": {
+        "BOT_USERNAME": "daily_games_dev_bot",
+        "TZ_NAME": "Europe/Paris",
+        "CUTOFF_HOUR": "21",
+        "DAY_ROLLOVER_HOUR": "4"
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "daily-games-dev",
+          "database_id": "PLACEHOLDER_RUN_wrangler_d1_create"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "name": "daily-games",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "pnpm run build:web && wrangler deploy",
+    "build:web": "vite build",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "db:local": "wrangler d1 execute daily-games --local --file=migrations/0001_init.sql",
+    "db:remote": "wrangler d1 execute daily-games --remote --file=migrations/0001_init.sql"
+  },
+  "dependencies": {
+    "grammy": "^1.46.0",
+    "hono": "^4.13.5"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.22.0",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11",
+    "wrangler": "^4.127.1"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "workerd",
+      "sharp"
+    ]
+  }
+}
