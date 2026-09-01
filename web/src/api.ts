@@ -1,4 +1,4 @@
-import { initData } from './telegram';
+import { initData, launchDiagnosis } from './telegram';
 
 export interface Group {
   chatId: number;
@@ -56,6 +56,7 @@ export class ApiError extends Error {
   constructor(
     message: string,
     readonly status: number,
+    readonly diagnosis?: string,
   ) {
     super(message);
   }
@@ -67,7 +68,11 @@ async function get<T>(path: string): Promise<T> {
   });
   if (!res.ok) {
     const body = (await res.json().catch(() => ({}))) as { error?: string };
-    throw new ApiError(body.error ?? `request failed (${res.status})`, res.status);
+    throw new ApiError(
+      body.error ?? `request failed (${res.status})`,
+      res.status,
+      res.status === 401 ? launchDiagnosis() : undefined,
+    );
   }
   return res.json() as Promise<T>;
 }

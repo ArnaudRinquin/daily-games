@@ -219,7 +219,9 @@ describe('postDigests', () => {
   test('no leaderboard button while the Mini App is unregistered', async () => {
     await addScore(1, 'queens', 11, '0:11');
     const { sent, api } = stubApi();
-    await postDigests(env, api, EVENING);
+    // Explicit, not ambient: the configured value changes once /newapp is done.
+    const unregistered = { ...env, MINIAPP_SHORT_NAME: '' } as unknown as typeof env;
+    await postDigests(unregistered, api, EVENING);
     expect(sent[0]?.hasButton).toBe(false);
   });
 

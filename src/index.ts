@@ -36,17 +36,40 @@ app.post('/telegram/webhook', async (c) => {
   }
 });
 
+/** The work one cron tick does. Shared with the admin trigger below. */
+async function runCron(env: AppEnv, now: Date) {
+  // A bare Api needs no getMe call, unlike a Bot that has to init.
+  const api = new Api(env.BOT_TOKEN);
+  const [sent, posted] = await Promise.all([
+    sendReminders(env, api, now),
+    postDigests(env, api, now),
+  ]);
+  console.log('cron', { sent, posted, at: now.toISOString() });
+  return { sent, posted };
+}
+
+/**
+ * Runs a tick on demand, behind the same secret as the webhook. Cron fires
+ * every 15 minutes, which is a painfully slow loop when something is wrong.
+ */
+app.post('/admin/run-cron', async (c) => {
+  const expected = c.env.WEBHOOK_SECRET;
+  const provided = c.req.header('X-Admin-Secret');
+  if (!expected || !provided || provided !== expected) {
+    return c.text('unauthorized', 401);
+  }
+  try {
+    return c.json(await runCron(c.env, new Date()));
+  } catch (error) {
+    console.error('cron failed', { error: String(error) });
+    return c.json({ error: String(error) }, 500);
+  }
+});
+
 export default {
   fetch: app.fetch,
 
   async scheduled(_event: ScheduledController, env: AppEnv, _ctx: ExecutionContext) {
-    const now = new Date();
-    // A bare Api needs no getMe call, unlike a Bot that has to init.
-    const api = new Api(env.BOT_TOKEN);
-    const [sent, posted] = await Promise.all([
-      sendReminders(env, api, now),
-      postDigests(env, api, now),
-    ]);
-    if (sent > 0 || posted > 0) console.log('cron', { sent, posted });
+    await runCron(env, new Date());
   },
 } satisfies ExportedHandler<AppEnv>;

@@ -241,3 +241,16 @@ body {
   text-align: center;
   padding: 4px 8px;
 }
+
+.diag {
+  display: block;
+  margin-top: 14px;
+  padding: 9px 11px;
+  background: var(--section-bg);
+  border: 1px solid var(--separator);
+  border-radius: 9px;
+  font: 11.5px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--hint);
+  word-break: break-word;
+  text-align: left;
+}

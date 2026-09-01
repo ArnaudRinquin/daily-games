@@ -54,23 +54,41 @@ function timingSafeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
-/** Null on any failure — a caller has no business knowing which check failed. */
-export async function verifyInitData(
+export type VerifyFailure =
+  | 'no-init-data'
+  | 'unparseable'
+  | 'no-hash'
+  | 'bad-hash'
+  | 'no-auth-date'
+  | 'expired'
+  | 'no-user'
+  | 'bad-user';
+
+export type VerifyResult =
+  | { ok: true; data: VerifiedInitData }
+  | { ok: false; reason: VerifyFailure; keys?: string[] };
+
+/**
+ * Detailed result, for server-side logging only. The reason must never reach
+ * the client: an attacker has no business knowing which check failed.
+ */
+export async function verifyInitDataDetailed(
   initData: string,
   botToken: string,
   options: { maxAgeSeconds?: number; now?: Date } = {},
-): Promise<VerifiedInitData | null> {
-  if (!initData) return null;
+): Promise<VerifyResult> {
+  if (!initData) return { ok: false, reason: 'no-init-data' };
 
   let params: URLSearchParams;
   try {
     params = new URLSearchParams(initData);
   } catch {
-    return null;
+    return { ok: false, reason: 'unparseable' };
   }
 
+  const keys = [...params.keys()].sort();
   const hash = params.get('hash');
-  if (!hash) return null;
+  if (!hash) return { ok: false, reason: 'no-hash', keys };
 
   const checkString = [...params.entries()]
     .filter(([key]) => key !== 'hash' && key !== 'signature')
@@ -80,25 +98,41 @@ export async function verifyInitData(
 
   const secret = await hmac(encoder.encode('WebAppData'), botToken);
   const expected = toHex(await hmac(secret, checkString));
-  if (!timingSafeEqual(expected, hash.toLowerCase())) return null;
+  if (!timingSafeEqual(expected, hash.toLowerCase())) {
+    return { ok: false, reason: 'bad-hash', keys };
+  }
 
   const authDate = Number(params.get('auth_date'));
-  if (!Number.isFinite(authDate) || authDate <= 0) return null;
+  if (!Number.isFinite(authDate) || authDate <= 0) {
+    return { ok: false, reason: 'no-auth-date', keys };
+  }
 
   const nowSeconds = Math.floor((options.now ?? new Date()).getTime() / 1000);
   const maxAge = options.maxAgeSeconds ?? MAX_AUTH_AGE_SECONDS;
-  if (nowSeconds - authDate > maxAge) return null;
+  if (nowSeconds - authDate > maxAge) return { ok: false, reason: 'expired', keys };
 
   const rawUser = params.get('user');
-  if (!rawUser) return null;
+  if (!rawUser) return { ok: false, reason: 'no-user', keys };
 
   let user: TelegramUser;
   try {
     user = JSON.parse(rawUser) as TelegramUser;
   } catch {
-    return null;
+    return { ok: false, reason: 'bad-user', keys };
   }
-  if (typeof user?.id !== 'number' || typeof user.first_name !== 'string') return null;
+  if (typeof user?.id !== 'number' || typeof user.first_name !== 'string') {
+    return { ok: false, reason: 'bad-user', keys };
+  }
 
-  return { user, authDate };
+  return { ok: true, data: { user, authDate } };
+}
+
+/** Null on any failure — the caller learns nothing about which check failed. */
+export async function verifyInitData(
+  initData: string,
+  botToken: string,
+  options: { maxAgeSeconds?: number; now?: Date } = {},
+): Promise<VerifiedInitData | null> {
+  const result = await verifyInitDataDetailed(initData, botToken, options);
+  return result.ok ? result.data : null;
 }

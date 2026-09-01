@@ -97,6 +97,7 @@ export default function App() {
   const [range, setRange] = useState<Range>('today');
   const [board, setBoard] = useState<Leaderboard | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [diagnosis, setDiagnosis] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -108,6 +109,7 @@ export default function App() {
       })
       .catch((e: unknown) => {
         setError(e instanceof ApiError ? e.message : 'Could not reach the bot.');
+        if (e instanceof ApiError && e.diagnosis) setDiagnosis(e.diagnosis);
         setLoading(false);
       });
   }, []);
@@ -141,7 +143,8 @@ export default function App() {
       <div className="app">
         <p className="state">
           <strong>{error}</strong>
-          Open this from the group button inside Telegram.
+          Open this from the leaderboard button inside Telegram.
+          {diagnosis && <code className="diag">{diagnosis}</code>}
         </p>
       </div>
     );
