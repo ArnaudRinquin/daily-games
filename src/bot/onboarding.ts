@@ -1,14 +1,7 @@
 import { InlineKeyboard } from 'grammy';
 import { gameById, visibleGames } from '../games/registry';
-import {
-  ensurePlayer,
-  getPlayerScores,
-  getPlayer,
-  getSelectedGames,
-  setPlayerActive,
-  setReminderHour,
-  toggleGame,
-} from '../lib/db';
+import { ensurePlayer, getPlayer, getSelectedGames, setPlayerActive, setReminderHour, toggleGame } from '../db/players';
+import { getPlayerScores } from '../db/scores';
 import { joinGroupFromPayload } from './groups';
 import type { AppBot } from './types';
 import { CB, gamesKeyboard, hoursKeyboard } from './keyboards';

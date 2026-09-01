@@ -1,12 +1,8 @@
 import { GAMES, gameById, parseAll } from '../games/registry';
-import {
-  addMembership,
-  ensurePlayerSeen,
-  getPlayerScores,
-  logMessageStatement,
-  scoreStatements,
-  upsertGroup,
-} from '../lib/db';
+import { addMembership, upsertGroup } from '../db/groups';
+import { logMessageStatement } from '../db/messages';
+import { ensurePlayerSeen } from '../db/players';
+import { getPlayerScores, scoreStatements } from '../db/scores';
 import { playDate } from '../lib/time';
 import type { AppBot, AppContext } from './types';
 

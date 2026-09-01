@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import type { MemberInfo, ScoreRow } from '../../src/lib/db';
+import type { MemberInfo, ScoreRow } from '../../src/db/types';
 import {
   buildBoards,
   eligibleDays,

@@ -1,15 +1,9 @@
 import type { Api } from 'grammy';
 import type { AppEnv } from '../env';
-import {
-  claimDigest,
-  getActiveGroups,
-  getAllGroupMembers,
-  getScoresBetween,
-  getScoresForDate,
-  releaseDigest,
-  type MemberInfo,
-  type ScoreRow,
-} from '../lib/db';
+import { getActiveGroups, getAllGroupMembers } from '../db/groups';
+import { claimDigest, releaseDigest } from '../db/schedule';
+import { getScoresBetween, getScoresForDate } from '../db/scores';
+import type { MemberInfo, ScoreRow } from '../db/types';
 import { buildBoards, eligibleDays, formatDigest, isComplete } from '../lib/digest';
 import type { DailyBoard } from '../lib/ranking';
 import { miniAppButton } from '../lib/miniapp';

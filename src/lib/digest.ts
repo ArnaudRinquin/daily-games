@@ -1,5 +1,5 @@
 import { gameById, visibleGameIds } from '../games/registry';
-import type { MemberInfo, ScoreRow } from './db';
+import type { MemberInfo, ScoreRow } from '../db/types';
 import { aggregate, byAverage, rankDay, type DailyBoard, type PlayerRef, type Standing } from './ranking';
 import { daysBetween } from './time';
 

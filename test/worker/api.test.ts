@@ -1,6 +1,7 @@
 import { SELF, applyD1Migrations, env } from 'cloudflare:test';
 import { beforeAll, beforeEach, describe, expect, test } from 'vitest';
-import { addMembership, ensurePlayer, upsertGroup } from '../../src/lib/db';
+import { addMembership, upsertGroup } from '../../src/db/groups';
+import { ensurePlayer } from '../../src/db/players';
 
 const TOKEN = '123456789:TESTTESTTESTTESTTESTTESTTESTTESTTES';
 

@@ -1,4 +1,5 @@
-import { addMembership, getPlayer, upsertGroup, deactivateGroup } from '../lib/db';
+import { addMembership, deactivateGroup, upsertGroup } from '../db/groups';
+import { getPlayer } from '../db/players';
 import { decodeGroupPayload, joinLink } from '../lib/deeplink';
 import type { AppBot, AppContext } from './types';
 

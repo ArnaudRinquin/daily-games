@@ -1,13 +1,9 @@
 import { Hono } from 'hono';
 import type { AppEnv } from '../env';
 import { gameById, visibleGames } from '../games/registry';
-import {
-  getAllGroupMembers,
-  getMemberGroups,
-  getScoresBetween,
-  type MemberInfo,
-  type ScoreRow,
-} from '../lib/db';
+import { getAllGroupMembers, getMemberGroups } from '../db/groups';
+import { getScoresBetween } from '../db/scores';
+import type { MemberInfo, ScoreRow } from '../db/types';
 import { buildBoards, eligibleDays } from '../lib/digest';
 import { aggregate, byAverage, type DailyBoard, type PlayerRef } from '../lib/ranking';
 import { addDays, playDate } from '../lib/time';

@@ -3,7 +3,8 @@ import type { Api } from 'grammy';
 import { beforeAll, beforeEach, describe, expect, test } from 'vitest';
 import { postDigests } from '../../src/cron/digest';
 import { sendReminders } from '../../src/cron/reminders';
-import { addMembership, ensurePlayer, setReminderHour, upsertGroup } from '../../src/lib/db';
+import { addMembership, upsertGroup } from '../../src/db/groups';
+import { ensurePlayer, setReminderHour } from '../../src/db/players';
 
 interface Sent {
   chatId: number | string;

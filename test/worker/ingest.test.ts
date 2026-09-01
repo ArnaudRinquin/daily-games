@@ -1,13 +1,9 @@
 import { applyD1Migrations, env } from 'cloudflare:test';
 import { beforeAll, beforeEach, describe, expect, test } from 'vitest';
 import { parseAll } from '../../src/games/registry';
-import {
-  ensurePlayer,
-  getPlayerScores,
-  getUnmatchedMessages,
-  logMessageStatement,
-  scoreStatements,
-} from '../../src/lib/db';
+import { getUnmatchedMessages, logMessageStatement } from '../../src/db/messages';
+import { ensurePlayer } from '../../src/db/players';
+import { getPlayerScores, scoreStatements } from '../../src/db/scores';
 
 beforeAll(async () => {
   await applyD1Migrations(env.DB, env.TEST_MIGRATIONS);

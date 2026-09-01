@@ -1,6 +1,6 @@
 import type { Api } from 'grammy';
 import { gameById } from '../games/registry';
-import { claimReminder, getPlayersDue, releaseReminder } from '../lib/db';
+import { claimReminder, getPlayersDue, releaseReminder } from '../db/schedule';
 import type { AppEnv } from '../env';
 import { parisHour, playDate } from '../lib/time';
 

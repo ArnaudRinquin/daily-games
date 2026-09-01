@@ -1,20 +1,9 @@
 import { applyD1Migrations, env } from 'cloudflare:test';
 import { beforeAll, beforeEach, describe, expect, test } from 'vitest';
 import { visibleGameIds } from '../../src/games/registry';
-import {
-  addMembership,
-  ensurePlayer,
-  ensurePlayerSeen,
-  getPlayersDue,
-  setPlayerActive,
-  getMemberGroups,
-  getPlayer,
-  getSelectedGames,
-  setReminderHour,
-  toggleGame,
-  upsertGroup,
-  deactivateGroup,
-} from '../../src/lib/db';
+import { addMembership, deactivateGroup, getMemberGroups, upsertGroup } from '../../src/db/groups';
+import { ensurePlayer, ensurePlayerSeen, getPlayer, getSelectedGames, setPlayerActive, setReminderHour, toggleGame } from '../../src/db/players';
+import { getPlayersDue } from '../../src/db/schedule';
 
 beforeAll(async () => {
   await applyD1Migrations(env.DB, env.TEST_MIGRATIONS);
