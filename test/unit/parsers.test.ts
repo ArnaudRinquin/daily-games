@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import { parseAll, visibleGameIds, gameById } from '../../src/games/registry';
+import { wordle } from '../../src/games/wordle';
 
 // NOTE: these fixtures encode the ASSUMED share formats. Phase 3 replaces them
 // with real pasted samples; any that differ get the parser fixed, not the test.
@@ -15,7 +16,6 @@ describe('catalog', () => {
       'minisudoku',
       'patches',
       'pinpoint',
-      'wordle',
       'fermi',
     ]);
   });
@@ -71,16 +71,19 @@ describe('pinpoint', () => {
 });
 
 describe('wordle', () => {
+  // Hidden until a real sample arrives, so parseAll skips it. The parser is
+  // still exercised directly, ready for the day `hidden` comes off.
+  test('is not offered while its format is unverified', () => {
+    expect(wordle.hidden).toBe(true);
+    expect(parseAll('Wordle 1,234 4/6')).toEqual([]);
+  });
+
   test('parses a success', () => {
-    expect(parseAll('Wordle 1,234 4/6\n\n⬛🟨⬛⬛⬛')).toEqual([
-      { game: 'wordle', value: 4, display: '4/6' },
-    ]);
+    expect(wordle.parse('Wordle 1,234 4/6\n\n⬛🟨⬛⬛⬛')).toEqual({ value: 4, display: '4/6' });
   });
 
   test('stores a failure as 7 so it sorts last', () => {
-    expect(parseAll('Wordle 1234 X/6*')).toEqual([
-      { game: 'wordle', value: 7, display: 'X/6' },
-    ]);
+    expect(wordle.parse('Wordle 1234 X/6*')).toEqual({ value: 7, display: 'X/6' });
   });
 });
 

@@ -1,6 +1,13 @@
 import type { GameParser, ParsedScore } from './types';
 
-/** A failed Wordle stores as 7 so it sorts below every success. */
+/**
+ * Hidden: no real Wordle share text has ever been pasted, so this parser is the
+ * only unverified one left. Shipping it visible would pre-select a game the
+ * group may not play and put a link they did not ask for in every reminder.
+ * Drop `hidden` once a sample lands in `messages`.
+ *
+ * A failed Wordle stores as 7 so it sorts below every success.
+ */
 export const WORDLE_FAIL_VALUE = 7;
 
 export const wordle: GameParser = {
@@ -8,6 +15,7 @@ export const wordle: GameParser = {
   label: 'Wordle',
   url: 'https://www.nytimes.com/games/wordle/',
   emoji: '🟩',
+  hidden: true,
   detect: (text) => /^[^\S\n]*Wordle\b/im.test(text),
   parse(text): ParsedScore | null {
     // "Wordle 1,234 4/6" — also 4/6* for hard mode.

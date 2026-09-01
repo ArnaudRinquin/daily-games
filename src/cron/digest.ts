@@ -73,9 +73,10 @@ export async function postDigests(env: AppEnv, api: Api, now: Date): Promise<num
         periodLabel: 'This month',
         eligible: eligibleDays(members, monthStart, date),
       });
+      const button = miniAppButton(env.BOT_USERNAME, env.MINIAPP_SHORT_NAME);
       await api.sendMessage(group.chat_id, text, {
         link_preview_options: { is_disabled: true },
-        reply_markup: miniAppButton(env.BOT_USERNAME, env.MINIAPP_SHORT_NAME),
+        ...(button ? { reply_markup: button } : {}),
       });
       posted++;
     } catch (error) {

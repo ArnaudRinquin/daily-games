@@ -105,9 +105,12 @@ export function registerOnboarding(bot: AppBot): void {
   });
 
   bot.chatType('private').command('board', async (ctx) => {
-    await ctx.reply('Standings:', {
-      reply_markup: miniAppButton(ctx.env.BOT_USERNAME, ctx.env.MINIAPP_SHORT_NAME),
-    });
+    const button = miniAppButton(ctx.env.BOT_USERNAME, ctx.env.MINIAPP_SHORT_NAME);
+    if (!button) {
+      await ctx.reply('The leaderboard app is not set up yet (BotFather /newapp).');
+      return;
+    }
+    await ctx.reply('Standings:', { reply_markup: button });
   });
 
   bot.chatType('private').command('pause', async (ctx) => {

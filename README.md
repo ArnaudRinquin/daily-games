@@ -34,7 +34,11 @@ Steps 2 and 5 fail silently if skipped.
      -d "secret_token=<WEBHOOK_SECRET>"
    ```
 
-Set `BOT_USERNAME` and `MINIAPP_SHORT_NAME` in `wrangler.jsonc` to match the bot.
+Set `BOT_USERNAME` and `MINIAPP_SHORT_NAME` in `wrangler.jsonc` to match the
+bot. `MINIAPP_SHORT_NAME` has **no default on purpose**: an unregistered short
+name produces a `t.me` link that silently resolves to nothing, which reads as a
+broken bot rather than an unfinished setup. While it is empty, no leaderboard
+button is attached anywhere.
 
 The leaderboard button is a plain URL button pointing at
 `https://t.me/<bot>/<short name>`, not a `web_app` button: `web_app` inline
@@ -73,6 +77,15 @@ over history.
 offered, never linked in a reminder, and never counted in a ranking field. The
 same filter also drops rows for games that were once selectable and have since
 been retired, so `player_games` never has to be migrated.
+
+**Wordle is hidden.** It is the only parser never checked against real share
+text, and it never appeared in a day's paste. Shipping it visible would
+pre-select a game the group may not play and put an unwanted link in every
+reminder. Drop `hidden` once a sample lands in `messages`.
+
+**Unverified: the already-started deep link.** Whether `?start=g<payload>`
+delivers its payload to a user who has *already* pressed Start is untested. It
+decides whether `/join` stays necessary. Test it on the first real second group.
 
 **Fermi scores are a mean error factor**, and 1.00× is perfect — already
 lower-is-better, so no negation. The parser anchors on the word `score` because
