@@ -77,6 +77,22 @@ pnpm exec wrangler deploy --env dev
 pnpm exec wrangler secret put BOT_TOKEN --env dev
 ```
 
+### Fake players for testing
+
+```bash
+bash scripts/seed-test-players.sh          # add
+bash scripts/seed-test-players.sh --undo   # remove
+```
+
+Adds three players to the **test group only**, with today's scores shaped to
+exercise the ranking: a tie for first, a tie mid-table, and two absences.
+
+They are inserted with `active = 0`, which is exactly what a dummy needs: never
+DM'd (`getPlayersDue` filters on `active = 1`), never blocks the digest
+(`isComplete` only waits on active members), but still ranked and still counted
+in the field size. Their ids are in the 999000xxx range, which cannot collide
+with a real Telegram id.
+
 ## Design notes
 
 Decisions that are not obvious from the code.
