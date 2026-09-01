@@ -1,21 +1,109 @@
-# Daily games bot
+# Daily Games
 
-Telegram bot for a group of friends who play daily puzzle games. It reminds each
-player privately, collects results by DM, and posts a ranked leaderboard to the
-group at the end of the day.
+A Telegram bot for a group of friends who play daily puzzle games. It reminds
+each player privately, collects their results, and posts one ranked leaderboard
+to the group every night.
 
-Runs entirely on the Cloudflare free tier: one Worker holds the bot webhook, the
-cron, the API and the Mini App.
+![Daily Games](assets/miniapp-cover.png)
 
-## Commands
+The two problems it solves are equal: **forgetting to play**, and **scores
+having no home**. Before it, the group played whatever they remembered and
+pasted share text into a chat, where it scrolled away untallied.
 
-```bash
-pnpm test           # unit (pure) + worker (workerd + D1) projects
-pnpm images         # regenerate the BotFather PNGs from their HTML sources
-pnpm typecheck      # Worker and Mini App
-pnpm build:web      # Mini App -> web/dist, served by the assets binding
-pnpm exec wrangler deploy --dry-run
+Runs entirely on the Cloudflare free tier — one Worker holds the bot webhook,
+the cron, the API and the Mini App.
+
+---
+
+## How it works
+
+1. **Sign up** — tap the link the bot posts when it joins your group. That one
+   tap starts the DM, selects every game, sets a 09:00 reminder and adds you to
+   that group's leaderboard.
+2. **Play** — the bot DMs you at your chosen hour with links to your games.
+3. **Paste your results** — in the DM, or straight into the group. Either
+   works, and one message can hold a whole day's games.
+4. **Read the board** — posted to the group once everyone has submitted, or at
+   21:00 Paris, whichever comes first. Tap through to the Mini App for
+   today / this week / all time.
+
+### Games
+
+| Game | Offerable | Id | Link |
+|---|---|---|---|
+| 👑 Queens | yes | `queens` | https://lnkd.in/queens |
+| 🌗 Tango | yes | `tango` | https://lnkd.in/tango |
+| 🏁 Zip | yes | `zip` | https://lnkd.in/zip |
+| 🌀 Wend | yes | `wend` | https://lnkd.in/wend |
+| 🪜 Crossclimb | yes | `crossclimb` | https://lnkd.in/crossclimb |
+| ✏️ Mini Sudoku | yes | `minisudoku` | https://lnkd.in/minisudoku |
+| 🧶 Patches | yes | `patches` | https://lnkd.in/patches |
+| 📌 Pinpoint | yes | `pinpoint` | https://lnkd.in/pinpoint |
+| 🟩 Wordle | yes | `wordle` | https://www.nytimes.com/games/wordle/ |
+| 🧮 Fermi | yes | `fermi` | https://fermi.gg/ |
+| 📗 Table des Savoirs · Abordable | yes | `lts_abordable` | https://latabledessavoirs.fr/abordable |
+| 📕 Table des Savoirs · Expert | yes | `lts_expert` | https://latabledessavoirs.fr/difficile |
+
+Every parser is verified against real pasted share text, kept verbatim in
+`test/unit/real-samples.test.ts`. If a case there fails, the parser is wrong,
+not the fixture. Adding a game is a code change on purpose: a game with no
+working parser would let people submit all week and score nothing.
+
+---
+
+## Scoring
+
+**Step 1 — every game becomes one number, where lower is better.**
+
+| Game | Raw | Stored |
+|---|---|---|
+| Queens, Zip, Tango… | `0:11` | `11` (seconds) |
+| Pinpoint | `2 guesses` | `2` |
+| Fermi | `1.72×` | `1.72` (1.00 is perfect) |
+| Table des Savoirs | `240 points` | `-240` (negated — more is better) |
+| Wordle | `X/6` | `7` (sorts below every success) |
+
+These numbers never reach a leaderboard. They exist only to sort one game, on
+one day, within one group — which is why Fermi and Queens coexist without
+comparing multipliers to seconds.
+
+**Step 2 — rank each game each day, then convert rank to points.**
+
 ```
+field size: 5
+  rank 1  Alice   0:11  +5
+  rank 2  Bob     0:19  +4
+  rank 2  Chloe   0:19  +4      tie shares the better rank
+  rank 4  Thomas  0:33  +2      and the next rank skips
+  absent: Lea                   listed, scores nothing
+```
+
+`points = field − rank + 1`, where **field is everyone who *selected* that
+game** — played or not. That is the load-bearing choice. It means a day when
+one person shows up is worth exactly as much as a busy one:
+
+```
+quiet day, Alice alone and slower:
+  rank 1  Alice   0:45  +5
+```
+
+Otherwise turning up on a quiet day would *cost* points, which is backwards for
+a game about daily habit.
+
+**Step 3 — two aggregates, because they reward different things.**
+
+- **Total** rewards turning up. It is the headline number.
+- **Average per game** rewards being good, and needs a floor or one lucky first
+  place is unbeatable: you must have played **60% of the days since you joined
+  that group** to appear.
+
+The denominator is *since you joined*, not the whole period, so a newcomer is
+not punished for days they could not have played.
+
+Standings are a property of the group, not the player. One score feeds every
+group you are in, ranked against a different field each time.
+
+---
 
 ## Setup
 
@@ -25,37 +113,35 @@ pnpm exec wrangler login   # interactive, opens a browser
 pnpm bootstrap             # everything else
 ```
 
-`pnpm bootstrap` is safe to re-run. It checks your Cloudflare login, validates the
-bot token against `getMe`, creates the D1 database and writes its id into
+`pnpm bootstrap` is safe to re-run. It checks your Cloudflare login, validates
+the bot token against `getMe`, creates the D1 database and writes its id into
 `wrangler.jsonc`, applies the schema, generates and stores `WEBHOOK_SECRET`,
-builds the Mini App, deploys, and registers the webhook with
-`allowed_updates` scoped to what the bot actually handles.
-
-It leaves exactly one manual step, because only BotFather can do it:
-
-1. @BotFather → `/newapp` → pick your bot
-2. Web App URL: the `workers.dev` URL the script prints
-3. Copy the **short name** it gives you into `MINIAPP_SHORT_NAME` in
-   `wrangler.jsonc`, then `pnpm run deploy`
-
-Until that is done the bot works normally; there is simply no leaderboard
-button. `MINIAPP_SHORT_NAME` has **no default on purpose**: an unregistered
-short name produces a `t.me` link that silently resolves to nothing, which
-reads as a broken bot rather than an unfinished setup.
+builds the Mini App, deploys, and registers the webhook with `allowed_updates`
+scoped to what the bot actually handles.
 
 > Named `bootstrap`, not `setup`: `pnpm setup` is a built-in pnpm command that
 > configures pnpm itself and edits your shell profile, and built-ins shadow
-> scripts. Same reason the deploy script is invoked as `pnpm run deploy` —
-> `pnpm deploy` is also built in.
+> scripts. Same reason the deploy script is invoked as `pnpm run deploy`.
+
+Three things only BotFather can do:
+
+1. **`/newapp`** → point at the Workers URL → copy the **short name** into
+   `MINIAPP_SHORT_NAME` in `wrangler.jsonc`, then `pnpm run deploy`. Use
+   `assets/miniapp-cover.png` for the required 640×360 image.
+2. **`/setuserpic`** → upload `assets/bot-icon.png`.
+3. **`/setprivacy` → Disable**, then **remove and re-add the bot to each
+   group**. Without this the bot cannot see results pasted in the group; the
+   re-add is required because the setting does not apply retroactively.
+
+`MINIAPP_SHORT_NAME` and `BOT_USERNAME` have no defaults on purpose. An
+unregistered short name produces a `t.me` link that silently resolves to
+nothing, and every group invite link is built from the username — a wrong value
+posts links that look right and open nothing, so the Worker refuses to start
+without it.
 
 ### Doing it by hand
 
 ```bash
-# BOT_USERNAME first: every group invite link is built from it, and a wrong
-# value posts links that look right and open nothing. The Worker refuses to
-# start while it is empty.
-#   wrangler.jsonc -> "BOT_USERNAME": "your_bot"
-
 pnpm exec wrangler d1 create daily-games      # paste database_id into wrangler.jsonc
 pnpm db:remote                                 # schema
 pnpm exec wrangler secret put BOT_TOKEN
@@ -66,32 +152,84 @@ curl "https://api.telegram.org/bot<TOKEN>/setWebhook" \
   -d "secret_token=<WEBHOOK_SECRET>"
 ```
 
-### Dev
+---
 
-Webhooks need a public URL, so dev is a second BotFather bot deployed to its own
-Worker rather than a tunnel:
+## Operations
+
+All admin endpoints take `X-Admin-Secret: <WEBHOOK_SECRET>`.
+
+| Endpoint | Why it exists |
+|---|---|
+| `POST /admin/run-cron` | Cron fires every 15 minutes, a painfully slow loop when something is wrong |
+| `POST /admin/replay` | Re-scores logged messages a since-fixed parser can now read |
+| `POST /admin/offer-game?game=<id>` | `player_games` is seeded at signup, so a game added later reaches nobody who already joined |
+
+**Calibration.** Every message that looks like a result is stored whether or not
+it parsed:
+
+```sql
+SELECT text FROM messages WHERE matched_games IS NULL ORDER BY sent_at DESC;
+```
+
+Write a regex against the real samples, ship it, then `POST /admin/replay` to
+recover the days it missed — `scores.raw` keeps the original message.
+
+**Is the scheduler alive?**
+
+```sql
+SELECT source, count(*), datetime(max(ran_at),'unixepoch') FROM cron_runs GROUP BY source;
+```
+
+A tick that finds no work is otherwise indistinguishable from one that never
+ran. Note that changing a cron trigger takes up to 15 minutes to propagate, so
+a tick shortly after a deploy proves nothing.
+
+**Fake players for testing:**
 
 ```bash
-cp .dev.vars.example .dev.vars     # for `wrangler dev` only
+TEST_CHAT=-100123 SEED_FROM_USER=456 bash scripts/seed-test-players.sh
+bash scripts/seed-test-players.sh --undo
+```
+
+Three players with scores shaped to exercise ties and absences. They are
+inserted `active = 0`: never DM'd, never blocking the digest, but still ranked
+and still counted in the field.
+
+---
+
+## Development
+
+```bash
+pnpm test           # unit (pure, fast) + worker (workerd + real D1)
+pnpm typecheck      # Worker and Mini App
+pnpm images         # regenerate the BotFather PNGs from their HTML sources
+pnpm run deploy
+```
+
+```
+src/
+  index.ts        routing only
+  api/            leaderboard (initData auth) + admin endpoints
+  bot/            onboarding, groups, DM and group ingestion
+  db/             one module per table group
+  games/          one parser per game, plus the registry
+  lib/            time, ranking, digest, initData, deep links
+  cron/           reminders and digest
+web/              Vite + React Mini App, Telegram theme variables only
+```
+
+`lib/time.ts`, `lib/ranking.ts`, `lib/initdata.ts` and `games/*` are pure
+functions with no D1 — that is where most of the tests live.
+
+Dev is a second BotFather bot on its own Worker rather than a tunnel, since
+webhooks need a public URL:
+
+```bash
+cp .dev.vars.example .dev.vars
 pnpm exec wrangler deploy --env dev
-pnpm exec wrangler secret put BOT_TOKEN --env dev
 ```
 
-### Fake players for testing
-
-```bash
-bash scripts/seed-test-players.sh          # add
-bash scripts/seed-test-players.sh --undo   # remove
-```
-
-Adds three players to the **test group only**, with today's scores shaped to
-exercise the ranking: a tie for first, a tie mid-table, and two absences.
-
-They are inserted with `active = 0`, which is exactly what a dummy needs: never
-DM'd (`getPlayersDue` filters on `active = 1`), never blocks the digest
-(`isComplete` only waits on active members), but still ranked and still counted
-in the field size. Their ids are in the 999000xxx range, which cannot collide
-with a real Telegram id.
+---
 
 ## Design notes
 
@@ -99,64 +237,30 @@ Decisions that are not obvious from the code.
 
 **Everything goes through `lib/time.ts`.** Cloudflare cron is UTC-only and
 France shifts between UTC+1 and UTC+2. Nothing derives a date or hour from UTC.
-The day rolls over at **04:00 Paris**, so a result pasted at 00:30 counts for the
-day just played.
+The day rolls over at **04:00 Paris**, so a result pasted at 00:30 counts for
+the day just played.
 
-**Parsers fail strictly.** A message that `detect()` matches but `parse()` cannot
-read is dropped rather than guessed, leaving it in the calibration corpus:
+**Parsers fail strictly.** A message that `detect()` matches but `parse()`
+cannot read is dropped rather than guessed, so it stays in the calibration
+corpus instead of being scored wrongly and silently.
 
-```sql
-SELECT text FROM messages WHERE matched_games IS NULL ORDER BY sent_at DESC;
-```
+**The share format differs by platform.** Web puts the score after a pipe on the
+header line; the iOS app puts it on the next line with no pipe. Both are
+covered, and the parser will not reach further down the message than that.
 
-Because `scores.raw` keeps the original message, a fixed parser can be replayed
-over history.
+**Group ingestion needs privacy mode off.** People paste results into the group
+out of habit, and that used to fail invisibly — the bot could not even say so,
+because it never saw the message. Reading groups also sidesteps the platform's
+hardest constraint: a bot cannot DM someone who has never started it, but it
+can rank what they post. Such players are created **inactive**, because marking
+them active would queue a reminder that fails and retries every tick forever.
 
-**Hidden games.** A game whose parser is a placeholder (`hidden: true`) is never
-offered, never linked in a reminder, and never counted in a ranking field. The
-same filter also drops rows for games that were once selectable and have since
-been retired, so `player_games` never has to be migrated.
+**Message ids are per chat, not per user.** The same person's DM #5 and group #5
+are both "message 5", so `messages` is keyed on `(chat_id, tg_message_id)`.
 
-**La Table des Savoirs is two games, not one.** The site ships a daily quiz at
-two difficulties and its own code maps them (`facile -> "Abordable"`,
-`difficile -> "Expert"` — note the Expert route is `/difficile`). Ranking them
-together would reward picking the hard quiz over playing well, so they are
-separate catalog entries and the tier word in the share text decides which one
-claims a result. Its third mode, "Événement", is deliberately unmatched: no
-sample, so it lands in the corpus rather than being scored as one of these two.
-
-**A new game reaches nobody who already signed up.** `player_games` is seeded at
-signup, so shipping a parser is only half the job — run
-`POST /admin/offer-game?game=<id>` once afterwards. It is per-game and explicit
-on purpose: a blanket resync would silently re-add games people turned off.
-
-**A failed Wordle still scores.** `X/6` stores as 7, so it sorts below every
-success — but it still earns a rank, and therefore points. Turning up and
-failing beats not turning up, which is the point of the ranking.
-
-**Every parser is now verified against real pasted text.** `test/unit/real-samples.test.ts`
-holds it verbatim; if a case there fails, the parser is wrong, not the fixture.
-The share format differs by platform — web puts the score after a pipe on the
-header line, the iOS app puts it on the next line with no pipe — and both are
-covered.
-
-**Unverified: the already-started deep link.** Whether `?start=g<payload>`
-delivers its payload to a user who has *already* pressed Start is untested. It
-decides whether `/join` stays necessary. Test it on the first real second group.
-
-**Fermi scores are a mean error factor**, and 1.00× is perfect — already
-lower-is-better, so no negation. The parser anchors on the word `score` because
-the per-question lines carry the same `N.NN×` shape as the total.
-
-**Ranking.** Field size for `(group, game, date)` is the number of members who
-*selected* that game, played or not — so a quiet day is worth as much as a busy
-one. Standard competition ranking; `points = field − rank + 1`. Absent players
-are listed but unscored.
-
-**Ranking fields are computed from today's roster.** Historical boards use
-current membership and current game selections, so someone deselecting Zip
-retroactively shrinks every past Zip field. Acceptable for a small group;
-fixing it would mean snapshotting the field per day in its own table.
+**Ingestion is one transaction.** The message log and the score writes go in a
+single `db.batch`, so a message is never recorded as parsed without its scores
+landing too.
 
 **Idempotency.** Cron delivery is at-least-once and fires four times an hour;
 completion and cutoff can both fire for the same day. `reminders` and `digests`
@@ -165,18 +269,24 @@ throws so the next tick retries.
 
 **The webhook fails closed and answers 200.** A plain `provided !== expected`
 compares `undefined` to `undefined` when the secret is unset — false — so an
-unconfigured Worker would accept every request. Both sides must be present.
-Separately, grammY does *not* route errors through `bot.catch` in webhook mode,
-so the route catches: every DB write commits before a reply is attempted, and
-ingestion is idempotent, so a non-2xx would only make Telegram redeliver an
-update with nothing left to do.
+unconfigured Worker would accept every request. Separately, grammY does *not*
+route errors through `bot.catch` in webhook mode, so the route catches: every
+write commits before a reply is attempted, and ingestion is idempotent, so a
+non-2xx would only make Telegram redeliver an update with nothing left to do.
 
-**`botInfo` is supplied, not fetched.** Otherwise grammY calls `getMe` on every
-single update: a wasted subrequest against the free tier's 50, and one more way
-for an update to fail. The trade is that `BOT_USERNAME` becomes load-bearing —
-it is what every group deep link is built from — so the Worker throws while it
-is empty rather than posting links that open nothing.
+**`initData` verification excludes only `hash`.** `signature` is part of the
+signed set. Excluding it made every real Mini App launch fail with `bad-hash`.
 
-**Ingestion is one transaction.** The message log and the score writes go in a
-single `db.batch`, so a message is never recorded as parsed without its scores
-landing too.
+**`botInfo` is supplied, not fetched**, or grammY calls `getMe` on every single
+update: a wasted subrequest against the free tier's 50, and one more way for an
+update to fail.
+
+**Ranking fields come from today's roster.** Deselecting a game retroactively
+shrinks every past field for it. Fine at six people; fixing it means
+snapshotting the field per day.
+
+---
+
+## Licence
+
+MIT — see [LICENSE](LICENSE).
