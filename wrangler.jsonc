@@ -24,7 +24,7 @@
 
   "vars": {
     "BOT_USERNAME": "DailyGamesScores_Bot",
-    "MINIAPP_SHORT_NAME": "",
+    "MINIAPP_SHORT_NAME": "board",
     "TZ_NAME": "Europe/Paris",
     "CUTOFF_HOUR": "21",
     "DAY_ROLLOVER_HOUR": "4"
