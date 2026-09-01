@@ -80,6 +80,42 @@ export async function ensurePlayer(
   };
 }
 
+/**
+ * Records someone seen posting a score in a group who has never DM'd the bot.
+ *
+ * They are created INACTIVE on purpose: a bot cannot DM a user who has not
+ * started it, so marking them active would queue a reminder that fails and
+ * retries every tick forever. They still get ranked. If they later /start,
+ * `ensurePlayer` flips them active and reminders begin.
+ */
+export async function ensurePlayerSeen(
+  db: D1Database,
+  user: { id: number; username?: string | undefined; first_name: string },
+): Promise<void> {
+  const existing = await getPlayer(db, user.id);
+  if (existing) {
+    await db
+      .prepare('UPDATE players SET username = ?, first_name = ? WHERE user_id = ?')
+      .bind(user.username ?? null, user.first_name, user.id)
+      .run();
+    return;
+  }
+  const now = nowSeconds();
+  await db.batch([
+    db
+      .prepare(
+        `INSERT INTO players (user_id, username, first_name, reminder_hour, active, joined_at)
+         VALUES (?, ?, ?, 9, 0, ?)`,
+      )
+      .bind(user.id, user.username ?? null, user.first_name, now),
+    ...visibleGameIds().map((game) =>
+      db
+        .prepare('INSERT OR IGNORE INTO player_games (user_id, game) VALUES (?, ?)')
+        .bind(user.id, game),
+    ),
+  ]);
+}
+
 export async function setReminderHour(
   db: D1Database,
   userId: number,
@@ -221,6 +257,7 @@ export async function getPlayerScores(
 export function logMessageStatement(
   db: D1Database,
   msg: {
+    chatId: number;
     tgMessageId: number;
     userId: number;
     sentAt: number;
@@ -230,10 +267,11 @@ export function logMessageStatement(
 ): D1PreparedStatement {
   return db
     .prepare(
-      `INSERT OR IGNORE INTO messages (tg_message_id, user_id, sent_at, text, matched_games)
-       VALUES (?, ?, ?, ?, ?)`,
+      `INSERT OR IGNORE INTO messages (chat_id, tg_message_id, user_id, sent_at, text, matched_games)
+       VALUES (?, ?, ?, ?, ?, ?)`,
     )
     .bind(
+      msg.chatId,
       msg.tgMessageId,
       msg.userId,
       msg.sentAt,

@@ -4,6 +4,9 @@ import { visibleGameIds } from '../../src/games/registry';
 import {
   addMembership,
   ensurePlayer,
+  ensurePlayerSeen,
+  getPlayersDue,
+  setPlayerActive,
   getMemberGroups,
   getPlayer,
   getSelectedGames,
@@ -123,5 +126,48 @@ describe('groups and membership', () => {
     await addMembership(env.DB, -100123, 1);
     await deactivateGroup(env.DB, -100123);
     expect(await getMemberGroups(env.DB, 1)).toEqual([]);
+  });
+});
+
+describe('players first seen in a group', () => {
+  test('are created inactive, because the bot cannot DM them', async () => {
+    await ensurePlayerSeen(env.DB, { id: 7, first_name: 'Passerby' });
+    const player = await getPlayer(env.DB, 7);
+    expect(player?.active).toBe(0);
+    // Still gets the full catalog, so they rank normally.
+    expect((await getSelectedGames(env.DB, 7)).length).toBe(visibleGameIds().length);
+  });
+
+  test('never appear in the reminder queue', async () => {
+    await ensurePlayerSeen(env.DB, { id: 7, first_name: 'Passerby' });
+    await setReminderHour(env.DB, 7, 9).catch(() => {});
+    const due = await getPlayersDue(env.DB, 9, '2026-09-05');
+    expect(due.map((d) => d.player.user_id)).not.toContain(7);
+  });
+
+  test('/start later flips them active and reminders begin', async () => {
+    await ensurePlayerSeen(env.DB, { id: 7, first_name: 'Passerby' });
+    const { created, player } = await ensurePlayer(env.DB, { id: 7, first_name: 'Passerby' });
+    expect(created).toBe(false);
+    expect(player.active).toBe(1);
+  });
+
+  test('being seen again does not resurrect someone who paused', async () => {
+    await ensurePlayer(env.DB, { id: 8, first_name: 'Quitter' });
+    await setPlayerActive(env.DB, 8, false);
+    await ensurePlayerSeen(env.DB, { id: 8, first_name: 'Quitter' });
+    expect((await getPlayer(env.DB, 8))?.active).toBe(0);
+  });
+
+  test('a group-only player is ranked but never blocks the digest', async () => {
+    const { isComplete } = await import('../../src/lib/digest');
+    const members = [
+      { userId: 1, name: 'Alice', active: true, joinedAt: 0, games: ['queens'] },
+      { userId: 7, name: 'Passerby', active: false, joinedAt: 0, games: ['queens'] },
+    ];
+    const scores = [
+      { user_id: 1, game: 'queens', play_date: '2026-09-05', value: 10, display: '0:10', raw: '' },
+    ];
+    expect(isComplete(members, scores)).toBe(true);
   });
 });

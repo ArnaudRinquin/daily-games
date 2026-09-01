@@ -24,10 +24,11 @@ beforeEach(async () => {
 });
 
 /** Mirrors what bot/ingest.ts does, minus Telegram. */
-async function ingest(text: string, tgMessageId: number, date = '2026-09-01') {
+async function ingest(text: string, tgMessageId: number, date = '2026-09-01', chatId = 1) {
   const matches = parseAll(text);
   const [logResult] = await env.DB.batch([
     logMessageStatement(env.DB, {
+      chatId,
       tgMessageId,
       userId: 1,
       sentAt: 1_756_700_000,
@@ -84,6 +85,14 @@ describe('log-first ingestion', () => {
     expect(scores.map((s) => s.game).sort()).toEqual(['queens', 'tango', 'zip']);
   });
 
+  test('a DM and a group message can share a message id without colliding', async () => {
+    // Telegram numbers messages per chat, so this collision is routine.
+    expect((await ingest('Queens #1 | 0:42', 500, '2026-09-01', 1)).isNew).toBe(true);
+    expect((await ingest('Zip #1 | 0:05', 500, '2026-09-01', -100999)).isNew).toBe(true);
+    const games = (await getPlayerScores(env.DB, 1, '2026-09-01')).map((s) => s.game).sort();
+    expect(games).toEqual(['queens', 'zip']);
+  });
+
   test('the same game on two days makes two rows', async () => {
     await ingest('Queens #1 | 0:42', 107, '2026-09-01');
     await ingest('Queens #2 | 0:44', 108, '2026-09-02');
@@ -98,6 +107,7 @@ describe('batch atomicity', () => {
     await expect(
       env.DB.batch([
         logMessageStatement(env.DB, {
+          chatId: 1,
           tgMessageId: 200,
           userId: 1,
           sentAt: 1_756_700_000,
