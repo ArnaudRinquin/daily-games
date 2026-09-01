@@ -40,15 +40,28 @@ app.post('/telegram/webhook', async (c) => {
 });
 
 /** The work one cron tick does. Shared with the admin trigger below. */
-async function runCron(env: AppEnv, now: Date) {
+async function runCron(env: AppEnv, now: Date, source: 'schedule' | 'manual') {
   // A bare Api needs no getMe call, unlike a Bot that has to init.
   const api = new Api(env.BOT_TOKEN);
   const [sent, posted] = await Promise.all([
     sendReminders(env, api, now),
     postDigests(env, api, now),
   ]);
-  console.log('cron', { sent, posted, at: now.toISOString() });
-  return { sent, posted };
+
+  // Leave a trace even when the tick did nothing: otherwise a scheduler that
+  // never runs is indistinguishable from one that runs and finds no work.
+  await env.DB.batch([
+    env.DB
+      .prepare(
+        `INSERT INTO cron_runs (ran_at, source, reminders_sent, digests_posted)
+         VALUES (?, ?, ?, ?)`,
+      )
+      .bind(Math.floor(now.getTime() / 1000), source, sent, posted),
+    env.DB.prepare('DELETE FROM cron_runs WHERE ran_at < unixepoch() - 604800'),
+  ]);
+
+  console.log('cron', { source, sent, posted, at: now.toISOString() });
+  return { sent, posted, source };
 }
 
 /**
@@ -62,7 +75,7 @@ app.post('/admin/run-cron', async (c) => {
     return c.text('unauthorized', 401);
   }
   try {
-    return c.json(await runCron(c.env, new Date()));
+    return c.json(await runCron(c.env, new Date(), 'manual'));
   } catch (error) {
     console.error('cron failed', { error: String(error) });
     return c.json({ error: String(error) }, 500);
@@ -105,6 +118,6 @@ export default {
   fetch: app.fetch,
 
   async scheduled(_event: ScheduledController, env: AppEnv, _ctx: ExecutionContext) {
-    await runCron(env, new Date());
+    await runCron(env, new Date(), 'schedule');
   },
 } satisfies ExportedHandler<AppEnv>;
