@@ -506,3 +506,25 @@ export async function replayUnmatched(
   if (statements.length > 0) await db.batch(statements);
   return { scanned: results.length, recovered, scores };
 }
+
+/**
+ * Adds one game to every active player's selection.
+ *
+ * `player_games` is seeded at signup, so a game added to the catalog later
+ * reaches nobody who already joined. Deliberately per-game and explicit rather
+ * than "sync everything": a blanket resync would silently re-add games people
+ * had chosen to turn off.
+ */
+export async function offerGameToEveryone(
+  db: D1Database,
+  game: string,
+): Promise<{ added: number }> {
+  const res = await db
+    .prepare(
+      `INSERT OR IGNORE INTO player_games (user_id, game)
+       SELECT user_id, ? FROM players WHERE active = 1`,
+    )
+    .bind(game)
+    .run();
+  return { added: res.meta.changes };
+}

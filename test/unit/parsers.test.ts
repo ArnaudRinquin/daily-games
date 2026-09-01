@@ -17,6 +17,8 @@ describe('catalog', () => {
       'patches',
       'pinpoint',
       'fermi',
+      'lts_abordable',
+      'lts_expert',
     ]);
   });
 

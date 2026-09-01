@@ -31,6 +31,7 @@ export function welcomeText(firstName: string, hour: number, gameCount: number):
     '/time — change the reminder',
     '/status — what you have submitted today',
     '/board — the leaderboard',
+    '/links — links to every game',
     '/pause — stop reminders',
   ].join('\n');
 }
@@ -111,6 +112,27 @@ export function registerOnboarding(bot: AppBot): void {
       return;
     }
     await ctx.reply('Standings:', { reply_markup: button });
+  });
+
+  bot.chatType('private').command('links', async (ctx) => {
+    const userId = ctx.from?.id;
+    if (userId === undefined) return;
+
+    const selected = new Set(await getSelectedGames(ctx.env.DB, userId));
+    // Everything in the catalog, with the player's own games first — the point
+    // is to be able to reach any of them, not only the ones they signed up for.
+    const mine = visibleGames().filter((g) => selected.has(g.id));
+    const rest = visibleGames().filter((g) => !selected.has(g.id));
+    const line = (g: { emoji: string; label: string; url: string }) =>
+      `${g.emoji} ${g.label} — ${g.url}`;
+
+    const parts = [mine.length > 0 ? `Your games:\n${mine.map(line).join('\n')}` : ''];
+    if (rest.length > 0) parts.push(`Not playing:\n${rest.map(line).join('\n')}`);
+    parts.push('/games to change the list.');
+
+    await ctx.reply(parts.filter(Boolean).join('\n\n'), {
+      link_preview_options: { is_disabled: true },
+    });
   });
 
   bot.chatType('private').command('pause', async (ctx) => {

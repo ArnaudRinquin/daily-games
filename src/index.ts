@@ -5,8 +5,8 @@ import { createBot } from './bot';
 import { postDigests } from './cron/digest';
 import { sendReminders } from './cron/reminders';
 import type { AppEnv } from './env';
-import { parseAll } from './games/registry';
-import { replayUnmatched } from './lib/db';
+import { isVisible, parseAll } from './games/registry';
+import { offerGameToEveryone, replayUnmatched } from './lib/db';
 import { playDate } from './lib/time';
 
 const app = new Hono<{ Bindings: AppEnv }>();
@@ -81,6 +81,24 @@ app.post('/admin/replay', async (c) => {
   );
   console.log('replay', result);
   return c.json(result);
+});
+
+/**
+ * Adds a newly catalogued game to everyone's selection. Run once after shipping
+ * a new parser; without it the game only reaches players who sign up later.
+ */
+app.post('/admin/offer-game', async (c) => {
+  const expected = c.env.WEBHOOK_SECRET;
+  const provided = c.req.header('X-Admin-Secret');
+  if (!expected || !provided || provided !== expected) {
+    return c.text('unauthorized', 401);
+  }
+  const game = c.req.query('game') ?? '';
+  if (!isVisible(game)) return c.json({ error: 'unknown or hidden game' }, 400);
+
+  const result = await offerGameToEveryone(c.env.DB, game);
+  console.log('offer-game', { game, ...result });
+  return c.json({ game, ...result });
 });
 
 export default {

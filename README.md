@@ -11,6 +11,7 @@ cron, the API and the Mini App.
 
 ```bash
 pnpm test           # unit (pure) + worker (workerd + D1) projects
+pnpm images         # regenerate the BotFather PNGs from their HTML sources
 pnpm typecheck      # Worker and Mini App
 pnpm build:web      # Mini App -> web/dist, served by the assets binding
 pnpm exec wrangler deploy --dry-run
@@ -99,6 +100,19 @@ over history.
 offered, never linked in a reminder, and never counted in a ranking field. The
 same filter also drops rows for games that were once selectable and have since
 been retired, so `player_games` never has to be migrated.
+
+**La Table des Savoirs is two games, not one.** The site ships a daily quiz at
+two difficulties and its own code maps them (`facile -> "Abordable"`,
+`difficile -> "Expert"` — note the Expert route is `/difficile`). Ranking them
+together would reward picking the hard quiz over playing well, so they are
+separate catalog entries and the tier word in the share text decides which one
+claims a result. Its third mode, "Événement", is deliberately unmatched: no
+sample, so it lands in the corpus rather than being scored as one of these two.
+
+**A new game reaches nobody who already signed up.** `player_games` is seeded at
+signup, so shipping a parser is only half the job — run
+`POST /admin/offer-game?game=<id>` once afterwards. It is per-game and explicit
+on purpose: a blanket resync would silently re-add games people turned off.
 
 **Wordle is hidden.** It is the only parser never checked against real share
 text, and it never appeared in a day's paste. Shipping it visible would
