@@ -9,11 +9,12 @@
 #   - never blocks the digest (isComplete only waits on active members)
 #   - still ranked, and still counted in the field size
 #
-# Usage:  bash scripts/seed-test-players.sh [--undo]
+# Usage:
+#   TEST_CHAT=-100123 SEED_FROM_USER=456 bash scripts/seed-test-players.sh
+#   bash scripts/seed-test-players.sh --undo
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-TEST_CHAT=-5301198806            # "Daily Games Tests" — never the real group
 DAY="$(TZ=Europe/Paris date +%F)"
 DB=daily-games
 
@@ -28,6 +29,10 @@ if [ "${1:-}" = "--undo" ]; then
   exit 0
 fi
 
+# Your own ids, kept out of the repo. Find the chat id in the groups table:
+#   wrangler d1 execute daily-games --remote -y --command "SELECT chat_id, title FROM groups"
+: "${TEST_CHAT:?set TEST_CHAT to the chat id of your TEST group}"
+: "${SEED_FROM_USER:?set SEED_FROM_USER to a user id whose game selection to copy}"
 # 999000xxx cannot collide with a real Telegram id.
 run "INSERT OR IGNORE INTO players (user_id, username, first_name, reminder_hour, active, joined_at)
      VALUES (999000001, NULL, 'Camille', 9, 0, unixepoch()),
@@ -43,7 +48,7 @@ run "INSERT OR IGNORE INTO memberships (chat_id, user_id, joined_at)
 run "INSERT OR IGNORE INTO player_games (user_id, game)
      SELECT p.user_id, g.game FROM
        (SELECT 999000001 AS user_id UNION SELECT 999000002 UNION SELECT 999000003) p,
-       (SELECT DISTINCT game FROM player_games WHERE user_id = 6239605827) g;"
+       (SELECT DISTINCT game FROM player_games WHERE user_id = $SEED_FROM_USER) g;"
 
 # Deliberately shaped to exercise the ranking: a tie for first (patches),
 # another tie (queens), a clear winner per game, and two absences for Lea.
