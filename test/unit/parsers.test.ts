@@ -10,6 +10,7 @@ describe('catalog', () => {
       'queens',
       'tango',
       'zip',
+      'wend',
       'crossclimb',
       'pinpoint',
       'wordle',

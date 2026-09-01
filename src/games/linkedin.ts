@@ -56,7 +56,14 @@ export const zip = timedGame({
   id: 'zip',
   label: 'Zip',
   url: 'https://www.linkedin.com/games/zip/',
-  emoji: '⚡',
+  emoji: '🏁',
+});
+
+export const wend = timedGame({
+  id: 'wend',
+  label: 'Wend',
+  url: 'https://www.linkedin.com/games/wend/',
+  emoji: '🌀',
 });
 
 export const crossclimb = timedGame({
@@ -84,4 +91,4 @@ export const pinpoint: GameParser = {
   },
 };
 
-export const linkedinGames = [queens, tango, zip, crossclimb, pinpoint];
+export const linkedinGames = [queens, tango, zip, wend, crossclimb, pinpoint];
