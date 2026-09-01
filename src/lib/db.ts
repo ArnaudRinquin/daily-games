@@ -190,3 +190,20 @@ export async function getMemberGroups(db: D1Database, userId: number): Promise<G
     .all<GroupRow>();
   return results;
 }
+
+/* ------------------------------------------------------------------- scores */
+
+export async function getPlayerScores(
+  db: D1Database,
+  userId: number,
+  playDate: string,
+): Promise<ScoreRow[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT user_id, game, play_date, value, display, raw
+       FROM scores WHERE user_id = ? AND play_date = ?`,
+    )
+    .bind(userId, playDate)
+    .all<ScoreRow>();
+  return results;
+}

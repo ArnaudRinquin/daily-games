@@ -1,5 +1,6 @@
 import { Bot } from 'grammy';
 import type { AppEnv } from '../env';
+import { registerGroups } from './groups';
 import { registerOnboarding } from './onboarding';
 import type { AppBot, AppContext } from './types';
 
@@ -13,6 +14,7 @@ export function createBot(env: AppEnv): AppBot {
     await next();
   });
 
+  registerGroups(bot);
   registerOnboarding(bot);
 
   bot.catch((err) => {

@@ -1,15 +1,18 @@
 import { InlineKeyboard } from 'grammy';
-import { visibleGames } from '../games/registry';
+import { gameById, visibleGames } from '../games/registry';
 import {
   ensurePlayer,
+  getPlayerScores,
   getPlayer,
   getSelectedGames,
   setPlayerActive,
   setReminderHour,
   toggleGame,
 } from '../lib/db';
+import { joinGroupFromPayload } from './groups';
 import type { AppBot } from './types';
 import { CB, gamesKeyboard, hoursKeyboard } from './keyboards';
+import { playDate } from '../lib/time';
 
 const hh = (h: number) => `${String(h).padStart(2, '0')}:00`;
 
@@ -34,22 +37,26 @@ export function registerOnboarding(bot: AppBot): void {
   bot.chatType('private').command('start', async (ctx) => {
     const from = ctx.from;
     if (!from) return;
+
     const { created, player } = await ensurePlayer(ctx.env.DB, {
       id: from.id,
       username: from.username,
       first_name: from.first_name,
     });
 
-    // A group deep-link payload is handled in bot/groups.ts, which runs first
-    // and stops the middleware chain when it consumes the payload.
-    if (created) {
-      await ctx.reply(welcomeText(player.first_name, player.reminder_hour, visibleGames().length));
-    } else {
-      await ctx.reply(
-        `Welcome back, ${player.first_name}. Reminder is set for ${hh(player.reminder_hour)}.\n\n` +
-          'Paste results any time. /games /time /status /pause',
-      );
-    }
+    // `?start=g<base64url>` carries the group the link was posted in.
+    const payload = typeof ctx.match === 'string' ? ctx.match.trim() : '';
+    const groupNote = payload ? await joinGroupFromPayload(ctx, payload) : null;
+
+    const body = created
+      ? welcomeText(player.first_name, player.reminder_hour, visibleGames().length)
+      : `Welcome back, ${player.first_name}. Reminder is set for ${hh(player.reminder_hour)}.\n\n` +
+        'Paste results any time. /games /time /status /pause';
+
+    // No parse_mode: group titles are arbitrary user text.
+    await ctx.reply(body + (groupNote ?? ''), {
+      link_preview_options: { is_disabled: true },
+    });
   });
 
   bot.chatType('private').command('games', async (ctx) => {
@@ -67,6 +74,32 @@ export function registerOnboarding(bot: AppBot): void {
     await ctx.reply('When should I remind you? (Paris time)', {
       reply_markup: hoursKeyboard(player.reminder_hour),
     });
+  });
+
+  bot.chatType('private').command('status', async (ctx) => {
+    const userId = ctx.from?.id;
+    if (userId === undefined) return;
+
+    const today = playDate(new Date());
+    const [scores, selected] = await Promise.all([
+      getPlayerScores(ctx.env.DB, userId, today),
+      getSelectedGames(ctx.env.DB, userId),
+    ]);
+    const done = new Map(scores.map((s) => [s.game, s.display]));
+
+    // Deliberately no rank: that is what the daily digest is for.
+    const lines = selected.map((id) => {
+      const game = gameById(id);
+      const label = game ? `${game.emoji} ${game.label}` : id;
+      const result = done.get(id);
+      return result ? `✅ ${label} — ${result}` : `⬜️ ${label}`;
+    });
+
+    await ctx.reply(
+      lines.length === 0
+        ? 'No games selected. /games to pick some.'
+        : `Today (${today}):\n${lines.join('\n')}`,
+    );
   });
 
   bot.chatType('private').command('pause', async (ctx) => {
