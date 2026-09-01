@@ -16,6 +16,9 @@ export default defineConfig({
           cloudflareTest({
             wrangler: { configPath: './wrangler.jsonc' },
             miniflare: {
+              // These override .dev.vars, which wrangler also loads. Verified:
+              // tests see this fake token, never the real one — so a missing
+              // API stub fails loudly instead of messaging real people.
               bindings: {
                 TEST_MIGRATIONS: migrations,
                 BOT_TOKEN: '123456789:TESTTESTTESTTESTTESTTESTTESTTESTTES',
