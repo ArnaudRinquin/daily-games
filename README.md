@@ -64,8 +64,13 @@ Because `scores.raw` keeps the original message, a fixed parser can be replayed
 over history.
 
 **Hidden games.** A game whose parser is a placeholder (`hidden: true`) is never
-offered, never linked in a reminder, and never counted in a ranking field. Fermi
-is hidden until someone pastes a real sample.
+offered, never linked in a reminder, and never counted in a ranking field. The
+same filter also drops rows for games that were once selectable and have since
+been retired, so `player_games` never has to be migrated.
+
+**Fermi scores are a mean error factor**, and 1.00× is perfect — already
+lower-is-better, so no negation. The parser anchors on the word `score` because
+the per-question lines carry the same `N.NN×` shape as the total.
 
 **Ranking.** Field size for `(group, game, date)` is the number of members who
 *selected* that game, played or not — so a quiet day is worth as much as a busy

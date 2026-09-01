@@ -82,11 +82,11 @@ describe('getPlayersDue', () => {
     expect(await getPlayersDue(env.DB, 9, DATE)).toEqual([]);
   });
 
-  test('carries the selected games, with hidden ones filtered out', async () => {
-    await env.DB.prepare("INSERT INTO player_games (user_id, game) VALUES (1, 'fermi')").run();
+  test('carries the selected games, with unofferable ones filtered out', async () => {
+    await env.DB.prepare("INSERT INTO player_games (user_id, game) VALUES (1, 'retired_game')").run();
     const due = await getPlayersDue(env.DB, 9, DATE);
     expect(due[0]?.games).toContain('queens');
-    expect(due[0]?.games).not.toContain('fermi');
+    expect(due[0]?.games).not.toContain('retired_game');
   });
 
   test('a player with no games selected still appears, so they can be told', async () => {

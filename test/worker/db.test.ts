@@ -39,9 +39,10 @@ describe('ensurePlayer', () => {
     expect((await getSelectedGames(env.DB, 1)).sort()).toEqual([...visibleGameIds()].sort());
   });
 
-  test('never contains the hidden game', async () => {
+  test('seeds exactly the offerable catalog, nothing else', async () => {
     await ensurePlayer(env.DB, alice);
-    expect(await getSelectedGames(env.DB, 1)).not.toContain('fermi');
+    const selected = await getSelectedGames(env.DB, 1);
+    expect(selected).toHaveLength(visibleGameIds().length);
   });
 
   test('re-running /start refreshes the name but keeps settings', async () => {
@@ -88,11 +89,11 @@ describe('toggleGame', () => {
     expect(await getSelectedGames(env.DB, 1)).toContain('queens');
   });
 
-  test('a selected-then-hidden game is filtered out of the reminder set', async () => {
+  test('a game that is no longer offerable drops out of the selection', async () => {
     await ensurePlayer(env.DB, alice);
-    // Simulate a game that was selectable before its parser was retired.
-    await env.DB.prepare("INSERT INTO player_games (user_id, game) VALUES (1, 'fermi')").run();
-    expect(await getSelectedGames(env.DB, 1)).not.toContain('fermi');
+    // A row left behind by a game whose parser was hidden or removed.
+    await env.DB.prepare("INSERT INTO player_games (user_id, game) VALUES (1, 'retired_game')").run();
+    expect(await getSelectedGames(env.DB, 1)).not.toContain('retired_game');
   });
 });
 

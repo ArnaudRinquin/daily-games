@@ -5,11 +5,6 @@ import { parseAll, visibleGameIds, gameById } from '../../src/games/registry';
 // with real pasted samples; any that differ get the parser fixed, not the test.
 
 describe('catalog', () => {
-  test('fermi is hidden until its format is confirmed', () => {
-    expect(gameById('fermi')?.hidden).toBe(true);
-    expect(visibleGameIds()).not.toContain('fermi');
-  });
-
   test('visible catalog is the offerable set', () => {
     expect(visibleGameIds()).toEqual([
       'queens',
@@ -18,7 +13,14 @@ describe('catalog', () => {
       'crossclimb',
       'pinpoint',
       'wordle',
+      'fermi',
     ]);
+  });
+
+  test('every offered game has a parser that can actually read something', () => {
+    for (const id of visibleGameIds()) {
+      expect(gameById(id)?.hidden).toBeUndefined();
+    }
   });
 });
 
