@@ -40,6 +40,7 @@ the cron, the API and the Mini App.
 | 🧶 Patches | yes | `patches` | https://lnkd.in/patches |
 | 📌 Pinpoint | yes | `pinpoint` | https://lnkd.in/pinpoint |
 | 🟩 Wordle | yes | `wordle` | https://www.nytimes.com/games/wordle/ |
+| 🇫🇷 Le Mot | yes | `lemot` | https://wordle.louan.me/ |
 | 🧇 Waffle | yes | `waffle` | https://wafflegame.net/ |
 | 🧮 Fermi | yes | `fermi` | https://fermi.gg/ |
 | 📗 Table des Savoirs · Abordable | yes | `lts_abordable` | https://latabledessavoirs.fr/abordable |
@@ -62,7 +63,7 @@ working parser would let people submit all week and score nothing.
 | Pinpoint | `2 guesses` | `2` |
 | Fermi | `1.72×` | `1.72` (1.00 is perfect) |
 | Table des Savoirs | `240 points` | `-240` (negated — more is better) |
-| Wordle | `X/6` | `7` (sorts below every success) |
+| Wordle, Le Mot | `X/6` | `7` (sorts below every success) |
 
 These numbers never reach a leaderboard. They exist only to sort one game, on
 one day, within one group — which is why Fermi and Queens coexist without

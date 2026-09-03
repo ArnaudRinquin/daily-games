@@ -1,4 +1,5 @@
 import { fermi } from './fermi';
+import { lemot } from './lemot';
 import { linkedinGames } from './linkedin';
 import { tableDesSavoirsGames } from './tabledessavoirs';
 import type { GameParser, Match } from './types';
@@ -8,7 +9,7 @@ import { wordle } from './wordle';
 export type { GameParser, Match, ParsedScore } from './types';
 
 /** Catalog order is the order players see in the keyboard and the digest. */
-export const GAMES: readonly GameParser[] = [...linkedinGames, wordle, waffle, fermi, ...tableDesSavoirsGames];
+export const GAMES: readonly GameParser[] = [...linkedinGames, wordle, lemot, waffle, fermi, ...tableDesSavoirsGames];
 
 const byId = new Map(GAMES.map((g) => [g.id, g]));
 

@@ -17,6 +17,7 @@ describe('catalog', () => {
       'patches',
       'pinpoint',
       'wordle',
+      'lemot',
       'waffle',
       'fermi',
       'lts_abordable',
