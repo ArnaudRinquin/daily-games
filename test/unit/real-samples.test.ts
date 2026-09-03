@@ -27,6 +27,15 @@ lnkd.in/pinpoint.`,
 🟩🟩⬛⬛⬛
 🟩🟩⬛⬛⬛
 ⬛🟨🟨🟨⬛`,
+  lemot: `Le Mot (@WordleFR) #1698 5/6
+
+⬛⬛⬛🟩⬛
+⬛🟨🟨🟨🟨
+🟨⬛🟨🟨🟨
+🟩⬛🟩⬛🟨
+🟩🟩🟩🟩🟩
+
+https://wordle.louan.me`,
   fermi: `Fermi · No. 37
 01  1.75×
 02  2.20×
@@ -47,6 +56,7 @@ describe('real share text, one game at a time', () => {
     patches: { game: 'patches', value: 7, display: '0:07' },
     pinpoint: { game: 'pinpoint', value: 2, display: '2/5' },
     wordle: { game: 'wordle', value: 7, display: 'X/6' },
+    lemot: { game: 'lemot', value: 5, display: '5/6' },
     fermi: { game: 'fermi', value: 1.72, display: '1.72×' },
   };
 
@@ -129,6 +139,7 @@ describe('a whole day pasted at once', () => {
     expect(parseAll(wholeDay).map((m) => m.game).sort()).toEqual([
       'crossclimb',
       'fermi',
+      'lemot',
       'minisudoku',
       'patches',
       'pinpoint',
@@ -154,6 +165,6 @@ describe('a whole day pasted at once', () => {
       .map(([, v]) => v)
       .join('\n\n');
     expect(parseAll(withoutZip).map((m) => m.game)).not.toContain('zip');
-    expect(parseAll(withoutZip)).toHaveLength(9);
+    expect(parseAll(withoutZip)).toHaveLength(10);
   });
 });
