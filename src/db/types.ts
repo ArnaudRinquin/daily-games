@@ -7,6 +7,7 @@ export interface PlayerRow {
   reminder_hour: number;
   active: number;
   joined_at: number;
+  api_token: string | null;
 }
 
 export interface GroupRow {

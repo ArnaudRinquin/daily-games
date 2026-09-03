@@ -52,6 +52,7 @@ export async function ensurePlayer(
       reminder_hour: 9,
       active: 1,
       joined_at: now,
+      api_token: null,
     },
   };
 }
@@ -114,6 +115,28 @@ export async function setPlayerActive(
     .prepare('UPDATE players SET active = ? WHERE user_id = ?')
     .bind(active ? 1 : 0, userId)
     .run();
+}
+
+/* ---------------------------------------------------------------- api token */
+
+function b64url(bytes: Uint8Array): string {
+  return btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+/**
+ * Mints a fresh token, replacing any previous one: the old URL stops working
+ * the moment a new one is issued, which is the only revocation there is.
+ * 24 random bytes, URL-safe, so it can sit in a path segment.
+ */
+export async function rotateApiToken(db: D1Database, userId: number): Promise<string> {
+  const token = b64url(crypto.getRandomValues(new Uint8Array(24)));
+  await db.prepare('UPDATE players SET api_token = ? WHERE user_id = ?').bind(token, userId).run();
+  return token;
+}
+
+export async function getPlayerByToken(db: D1Database, token: string): Promise<PlayerRow | null> {
+  if (!token) return null;
+  return db.prepare('SELECT * FROM players WHERE api_token = ?').bind(token).first<PlayerRow>();
 }
 
 /* ------------------------------------------------------------- player games */

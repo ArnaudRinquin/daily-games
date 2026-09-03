@@ -27,6 +27,18 @@ the cron, the API and the Mini App.
    21:00 Paris, whichever comes first. Tap through to the Mini App for
    today / this week / all time.
 
+### iPhone: submit from the share sheet
+
+Copying eight share texts into Telegram every day is the chore this removes.
+Send `/shortcut` to the bot: it replies with a link to a signed Shortcut and a
+personal URL. Install the Shortcut, paste the URL when asked, and from then on
+every game is **Share → Share via → Daily Games**. The result is logged over
+HTTP, acknowledged in a notification and mirrored in your DM.
+
+The URL is the credential. `/shortcut` again rotates it and kills the old one.
+The Shortcut itself is built from a plist and signed with the macOS `shortcuts`
+CLI (`shortcuts sign --mode anyone`); it lives in `web/public/`.
+
 ### Games
 
 | Game | Offerable | Id | Link |
@@ -164,6 +176,7 @@ All admin endpoints take `X-Admin-Secret: <WEBHOOK_SECRET>`.
 |---|---|
 | `POST /admin/run-cron` | Cron fires every 15 minutes, a painfully slow loop when something is wrong |
 | `POST /admin/replay` | Re-scores logged messages a since-fixed parser can now read |
+| `POST /api/ingest/<token>` | Not admin: the iPhone Shortcut posts share text here, the token minted by `/shortcut` is the auth |
 | `POST /admin/offer-game?game=<id>` | `player_games` is seeded at signup, so a game added later reaches nobody who already joined |
 
 **Calibration.** Every message that looks like a result is stored whether or not
