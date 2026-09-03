@@ -25,6 +25,7 @@
   "vars": {
     "BOT_USERNAME": "DailyGamesScores_Bot",
     "MINIAPP_SHORT_NAME": "board",
+    "PUBLIC_URL": "https://daily-games.curly-shadow-465f.workers.dev",
     "TZ_NAME": "Europe/Paris",
     "CUTOFF_HOUR": "21",
     "DAY_ROLLOVER_HOUR": "4"
@@ -36,6 +37,7 @@
       "vars": {
         "BOT_USERNAME": "",
         "MINIAPP_SHORT_NAME": "",
+        "PUBLIC_URL": "http://localhost:8787",
         "TZ_NAME": "Europe/Paris",
         "CUTOFF_HOUR": "21",
         "DAY_ROLLOVER_HOUR": "4"

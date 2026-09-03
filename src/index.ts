@@ -1,6 +1,7 @@
 import { webhookCallback } from 'grammy';
 import { Hono } from 'hono';
 import { admin, runCron } from './api/admin';
+import { ingest } from './api/ingest';
 import { api } from './api/leaderboard';
 import { createBot } from './bot';
 import type { AppEnv } from './env';
@@ -9,6 +10,9 @@ const app = new Hono<{ Bindings: AppEnv }>();
 
 app.get('/health', (c) => c.json({ ok: true }));
 
+// Before `api`: its initData middleware covers /api/*, and the token IS the
+// auth here.
+app.route('/', ingest);
 app.route('/', api);
 app.route('/', admin);
 

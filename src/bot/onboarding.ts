@@ -1,6 +1,14 @@
 import { InlineKeyboard } from 'grammy';
 import { gameById, visibleGames } from '../games/registry';
-import { ensurePlayer, getPlayer, getSelectedGames, setPlayerActive, setReminderHour, toggleGame } from '../db/players';
+import {
+  ensurePlayer,
+  getPlayer,
+  getSelectedGames,
+  rotateApiToken,
+  setPlayerActive,
+  setReminderHour,
+  toggleGame,
+} from '../db/players';
 import { getPlayerScores } from '../db/scores';
 import { joinGroupFromPayload } from './groups';
 import type { AppBot } from './types';
@@ -27,6 +35,24 @@ export function welcomeText(firstName: string, hour: number, gameCount: number):
     '/board — the leaderboard',
     '/links — links to every game',
     '/pause — stop reminders',
+    '/shortcut — submit from the iPhone share sheet',
+  ].join('\n');
+}
+
+/**
+ * Any previous URL is dead the moment this is sent: /shortcut rotates. Said
+ * plainly so a second run does not look like a way to get the same URL back.
+ */
+export function shortcutText(publicUrl: string, token: string): string {
+  const base = publicUrl.replace(/\/$/, '');
+  return [
+    'Submit from your iPhone in 3 taps: Share → Share via → Daily Games.',
+    '',
+    `1. Install the shortcut: ${base}/dailygames.shortcut`,
+    '2. When asked, paste this URL:',
+    `${base}/api/ingest/${token}`,
+    '',
+    'Running /shortcut again makes a new URL and kills this one.',
   ].join('\n');
 }
 
@@ -92,6 +118,20 @@ export function registerOnboarding(bot: AppBot): void {
     const userId = ctx.from?.id;
     if (userId === undefined) return;
     await ctx.reply(await linksText(ctx.env.DB, userId), {
+      link_preview_options: { is_disabled: true },
+    });
+  });
+
+  bot.chatType('private').command('shortcut', async (ctx) => {
+    const userId = ctx.from?.id;
+    if (!userId) return;
+    await ensurePlayer(ctx.env.DB, {
+      id: userId,
+      username: ctx.from?.username,
+      first_name: ctx.from?.first_name ?? '',
+    });
+    const token = await rotateApiToken(ctx.env.DB, userId);
+    await ctx.reply(shortcutText(ctx.env.PUBLIC_URL, token), {
       link_preview_options: { is_disabled: true },
     });
   });

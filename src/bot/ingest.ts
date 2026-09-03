@@ -1,20 +1,11 @@
-import { GAMES, gameById, parseAll } from '../games/registry';
+import { GAMES } from '../games/registry';
 import { addMembership, upsertGroup } from '../db/groups';
-import { logMessageStatement } from '../db/messages';
 import { ensurePlayerSeen } from '../db/players';
-import { getPlayerScores, scoreStatements } from '../db/scores';
+import { getPlayerScores } from '../db/scores';
 import { postCompletedDigests } from '../cron/digest';
+import { ackLines, store } from '../lib/ingest';
 import { playDate } from '../lib/time';
 import type { AppBot, AppContext } from './types';
-
-function ackLines(matches: readonly { game: string; display: string }[]): string {
-  return matches
-    .map((m) => {
-      const game = gameById(m.game);
-      return `✅ ${game ? `${game.emoji} ${game.label}` : m.game} — ${m.display}`;
-    })
-    .join('\n');
-}
 
 /** Emoji used by share grids: 🟩🟥🟨🟦🟪🟧⬜⬛ and the pale variants. */
 const GRID_SQUARE = /[\u{1F7E5}-\u{1F7EB}\u{2B1B}\u{2B1C}\u{25A0}-\u{25FF}]/gu;
@@ -39,39 +30,6 @@ export function looksLikeAShare(text: string): boolean {
   return /#\w*\d+\s+[\dX]{1,2}\s*\/\s*\d/i.test(text);
 }
 
-/**
- * Writes the message log and any scores in ONE D1 batch, which is one
- * transaction. Returns false when this exact message was already stored, i.e.
- * a redelivered webhook.
- */
-async function store(
-  ctx: AppContext,
-  params: {
-    chatId: number;
-    tgMessageId: number;
-    userId: number;
-    sentAt: number;
-    text: string;
-  },
-): Promise<{ isNew: boolean; matches: ReturnType<typeof parseAll>; date: string }> {
-  const matches = parseAll(params.text);
-  const date = playDate(new Date(params.sentAt * 1000));
-
-  const [logResult] = await ctx.env.DB.batch([
-    logMessageStatement(ctx.env.DB, {
-      chatId: params.chatId,
-      tgMessageId: params.tgMessageId,
-      userId: params.userId,
-      sentAt: params.sentAt,
-      text: params.text,
-      matchedGames: matches.map((m) => m.game),
-    }),
-    ...scoreStatements(ctx.env.DB, params.userId, date, params.text, matches),
-  ]);
-
-  return { isNew: logResult?.meta.changes === 1, matches, date };
-}
-
 export function registerIngest(bot: AppBot): void {
   // ---------------------------------------------------------------- DM path
   bot.chatType('private').on('message:text', async (ctx) => {
@@ -81,7 +39,7 @@ export function registerIngest(bot: AppBot): void {
 
     // Log first, always. A DM that parses to nothing is the raw material for
     // fixing the parsers later, so it must be stored either way.
-    const { isNew, matches, date } = await store(ctx, {
+    const { isNew, matches, date } = await store(ctx.env.DB, {
       chatId: ctx.chat.id,
       tgMessageId: ctx.message.message_id,
       userId,
@@ -137,7 +95,7 @@ export function registerIngest(bot: AppBot): void {
     await upsertGroup(ctx.env.DB, ctx.chat.id, ctx.chat.title);
     await addMembership(ctx.env.DB, ctx.chat.id, from.id);
 
-    const { isNew, matches, date } = await store(ctx, {
+    const { isNew, matches, date } = await store(ctx.env.DB, {
       chatId: ctx.chat.id,
       tgMessageId: ctx.message.message_id,
       userId: from.id,
