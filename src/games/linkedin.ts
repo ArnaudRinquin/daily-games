@@ -101,9 +101,47 @@ export const patches = timedGame({
 
 /**
  * Pinpoint is scored in guesses (1 best, 5 worst) — already lower-is-better.
- * Real text: `Pinpoint #854 | 2 guesses with no mistakes`. Same two-platform
- * separator problem as the timed games.
+ * Real text on a solve: `Pinpoint #854 | 2 guesses with no mistakes`, with the
+ * same two-platform separator problem as the timed games.
+ *
+ * A FAILED round shares differently: the app drops the guess count from the
+ * header entirely, leaving only the five keycap lines and no pin.
+ *
+ *   Pinpoint #857          Pinpoint #854 | 2 guesses with no mistakes
+ *   1️⃣ | 24% match         1️⃣ | 12% match
+ *   …                      2️⃣ | 100% match 📌
+ *   5️⃣ | 28% match         lnkd.in/pinpoint.
+ *   lnkd.in/pinpoint.
+ *
+ * So the keycap lines are the fallback: the pin marks the guess that landed,
+ * and five lines without one is a failure. Stored as 6 — below every success,
+ * but still a rank, because turning up and failing beats not turning up.
  */
+export const PINPOINT_FAIL_VALUE = 6;
+
+/** `1️⃣ | 24% match` — digit, optional variation selector, keycap. */
+const PINPOINT_GUESS_LINE = /^[^\S\n]*(\d)\uFE0F?\u20E3[^\n]*/gmu;
+
+/** The guess that landed: the app pins it, and it always reads 100%. */
+const PINPOINT_HIT = /📌|\b100\s*%\s*match/iu;
+
+function pinpointFromGuessLines(text: string): ParsedScore | null {
+  const lines = [...text.matchAll(PINPOINT_GUESS_LINE)];
+  if (lines.length === 0) return null;
+
+  const hit = lines.find((l) => PINPOINT_HIT.test(l[0]));
+  if (hit?.[1]) {
+    const guesses = Number(hit[1]);
+    if (guesses < 1 || guesses > 5) return null;
+    return { value: guesses, display: `${guesses}/5` };
+  }
+
+  // Only a full board of five proves a failure. Anything shorter is a partial
+  // paste, and guessing at it would score somebody wrongly and silently.
+  if (lines.length !== 5) return null;
+  return { value: PINPOINT_FAIL_VALUE, display: 'X/5' };
+}
+
 export const pinpoint: GameParser = {
   id: 'pinpoint',
   label: 'Pinpoint',
@@ -114,10 +152,12 @@ export const pinpoint: GameParser = {
     const m = /^[^\S\n]*Pinpoint\b[^\n|]*(?:\||\n)[^\S\n]*(\d+)\s*(?:guess(?:es)?|\/\s*5)/im.exec(
       text,
     );
-    if (!m?.[1]) return null;
-    const guesses = Number(m[1]);
-    if (!Number.isInteger(guesses) || guesses < 1 || guesses > 5) return null;
-    return { value: guesses, display: `${guesses}/5` };
+    const guesses = m?.[1] === undefined ? NaN : Number(m[1]);
+    if (Number.isInteger(guesses) && guesses >= 1 && guesses <= 5) {
+      return { value: guesses, display: `${guesses}/5` };
+    }
+    // The header carried no usable count: read the keycap lines instead.
+    return pinpointFromGuessLines(text);
   },
 };
 
