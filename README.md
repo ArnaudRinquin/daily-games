@@ -55,6 +55,7 @@ CLI (`shortcuts sign --mode anyone`); it lives in `web/public/`.
 | 🇫🇷 Le Mot | yes | `lemot` | https://wordle.louan.me/ |
 | 🧇 Waffle | yes | `waffle` | https://wafflegame.net/ |
 | 🧮 Fermi | yes | `fermi` | https://fermi.gg/ |
+| 🌍 Geozee | yes | `geozee` | https://geozee.earth/ |
 | 📗 Table des Savoirs · Abordable | yes | `lts_abordable` | https://latabledessavoirs.fr/abordable |
 | 📕 Table des Savoirs · Expert | yes | `lts_expert` | https://latabledessavoirs.fr/difficile |
 
@@ -74,7 +75,7 @@ working parser would let people submit all week and score nothing.
 | Queens, Zip, Tango… | `0:11` | `11` (seconds) |
 | Pinpoint | `2 guesses` | `2` |
 | Fermi | `1.72×` | `1.72` (1.00 is perfect) |
-| Table des Savoirs | `240 points` | `-240` (negated — more is better) |
+| Table des Savoirs, Geozee | `240 points`, `257/742` | `-240`, `-257` (negated — more is better) |
 | Wordle, Le Mot | `X/6` | `7` (sorts below every success) |
 
 These numbers never reach a leaderboard. They exist only to sort one game, on

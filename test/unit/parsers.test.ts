@@ -20,6 +20,7 @@ describe('catalog', () => {
       'lemot',
       'waffle',
       'fermi',
+      'geozee',
       'lts_abordable',
       'lts_expert',
     ]);
