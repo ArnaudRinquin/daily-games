@@ -73,7 +73,7 @@ working parser would let people submit all week and score nothing.
 | Game | Raw | Stored |
 |---|---|---|
 | Queens, Zip, Tango… | `0:11` | `11` (seconds) |
-| Pinpoint | `2 guesses` | `2` |
+| Pinpoint | `2 guesses` | `2`, or `6` when no guess lands |
 | Fermi | `1.72×` | `1.72` (1.00 is perfect) |
 | Table des Savoirs, Geozee | `240 points`, `257/742` | `-240`, `-257` (negated — more is better) |
 | Wordle, Le Mot | `X/6` | `7` (sorts below every success) |

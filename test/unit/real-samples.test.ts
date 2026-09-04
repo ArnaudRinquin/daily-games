@@ -141,6 +141,50 @@ describe('awkward shapes in the real text', () => {
   });
 });
 
+/**
+ * A failed Pinpoint. Byte-for-byte what the bot received, and what it used to
+ * reject: the app drops the guess count from the header when nothing lands.
+ */
+const PINPOINT_FAILED = `Pinpoint #857
+1\u{FE0F}\u{20E3} | 24% match
+2\u{FE0F}\u{20E3} | 5% match
+3\u{FE0F}\u{20E3} | 3% match
+4\u{FE0F}\u{20E3} | 12% match
+5\u{FE0F}\u{20E3} | 28% match
+lnkd.in/pinpoint.`;
+
+describe('a Pinpoint nobody solved', () => {
+  test('five guesses and no pin is a failure, not an unreadable message', () => {
+    expect(parseAll(PINPOINT_FAILED)).toEqual([
+      { game: 'pinpoint', value: 6, display: 'X/5' },
+    ]);
+  });
+
+  test('it sorts below every success', () => {
+    const failed = parseAll(PINPOINT_FAILED)[0]!.value;
+    expect(failed).toBeGreaterThan(parseAll(SAMPLES.pinpoint)[0]!.value);
+    expect(failed).toBeGreaterThan(5);
+  });
+
+  test('a partial paste is still rejected rather than scored as a failure', () => {
+    const truncated = PINPOINT_FAILED.split('\n').slice(0, 4).join('\n');
+    expect(parseAll(truncated)).toEqual([]);
+  });
+
+  test('the pin still wins when the header has no count', () => {
+    const solved = `Pinpoint #857
+1\u{FE0F}\u{20E3} | 24% match
+2\u{FE0F}\u{20E3} | 100% match \u{1F4CC}`;
+    expect(parseAll(solved)).toEqual([{ game: 'pinpoint', value: 2, display: '2/5' }]);
+  });
+
+  test('the header count still wins when it is there', () => {
+    expect(parseAll(SAMPLES.pinpoint)).toEqual([
+      { game: 'pinpoint', value: 2, display: '2/5' },
+    ]);
+  });
+});
+
 describe('a whole day pasted at once', () => {
   const wholeDay = Object.values(SAMPLES).join('\n\n');
 
