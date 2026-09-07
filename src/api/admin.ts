@@ -6,7 +6,7 @@ import { importLinkedIn } from '../cron/linkedin';
 import { sendReminders } from '../cron/reminders';
 import { isVisible, parseAll } from '../games/registry';
 import { replayUnmatched } from '../db/messages';
-import { getUnlinkedProfiles, link } from '../db/linkedin';
+import { addPending, getUnlinkedProfiles, link } from '../db/linkedin';
 import { offerGameToEveryone } from '../db/players';
 import { playDate } from '../lib/time';
 
@@ -107,12 +107,23 @@ admin.get('/admin/linkedin', async (c) => {
   return c.json({ unlinked: await getUnlinkedProfiles(c.env.DB) });
 });
 
-/** Manual mapping: `{ "profileUrn": "urn:li:fsd_profile:…", "userId": 123 }`. */
+/**
+ * Manual mapping. Either `{ "profileUrn": "urn:li:fsd_profile:…", "userId": 123 }`
+ * for a profile already seen, or `{ "publicIdentifier": "jean-dupont", "userId": 123 }`
+ * to pre-feed one: it links itself the first time that slug appears.
+ */
 admin.post('/admin/linkedin/link', async (c) => {
-  const body = (await c.req.json().catch(() => null)) as { profileUrn?: unknown; userId?: unknown } | null;
-  if (typeof body?.profileUrn !== 'string' || typeof body.userId !== 'number') {
-    return c.json({ error: 'profileUrn (string) and userId (number) required' }, 400);
+  const body = (await c.req.json().catch(() => null)) as
+    | { profileUrn?: unknown; publicIdentifier?: unknown; userId?: unknown }
+    | null;
+  if (typeof body?.userId !== 'number') return c.json({ error: 'userId (number) required' }, 400);
+  if (typeof body.profileUrn === 'string') {
+    const result = await link(c.env.DB, { profileUrn: body.profileUrn, userId: body.userId, source: 'admin' });
+    return c.json({ result }, result === 'linked' ? 200 : 409);
   }
-  const result = await link(c.env.DB, { profileUrn: body.profileUrn, userId: body.userId, source: 'admin' });
-  return c.json({ result }, result === 'linked' ? 200 : 409);
+  if (typeof body.publicIdentifier === 'string') {
+    await addPending(c.env.DB, { publicIdentifier: body.publicIdentifier, userId: body.userId, source: 'admin' });
+    return c.json({ result: 'pending' });
+  }
+  return c.json({ error: 'profileUrn or publicIdentifier (string) required' }, 400);
 });

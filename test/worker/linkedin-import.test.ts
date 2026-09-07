@@ -3,7 +3,7 @@ import type { Api } from 'grammy';
 import { beforeAll, beforeEach, describe, expect, test } from 'vitest';
 import { importLinkedIn } from '../../src/cron/linkedin';
 import { addMembership, upsertGroup } from '../../src/db/groups';
-import { getUnlinkedProfiles, link } from '../../src/db/linkedin';
+import { addPending, getLinks, getPendingForUser, getUnlinkedProfiles, link } from '../../src/db/linkedin';
 import { ensurePlayer, toggleGame } from '../../src/db/players';
 import { getScoresForDate } from '../../src/db/scores';
 import { linkedinNudge } from '../../src/lib/ingest';
@@ -50,6 +50,7 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   await env.DB.batch([
+    env.DB.prepare('DELETE FROM linkedin_pending'),
     env.DB.prepare('DELETE FROM linkedin_links'),
     env.DB.prepare('DELETE FROM linkedin_profiles'),
     env.DB.prepare('DELETE FROM linkedin_meta'),
@@ -148,6 +149,30 @@ describe('importLinkedIn', () => {
     expect(first.skipped).toBe('auth');
     expect(second.skipped).toBe('auth');
     expect(sent.filter((m) => m.chatId === 7 && /LinkedIn import stopped/.test(m.text))).toHaveLength(1);
+  });
+});
+
+describe('pending links', () => {
+  test('a slug given before the profile is seen links itself on the next import, and says so', async () => {
+    await ensurePlayer(env.DB, { id: 1, first_name: 'Whoever' });
+    await addPending(env.DB, { publicIdentifier: 'Alice-Test', userId: 1, source: 'admin' }); // case-insensitive
+    const { sent, api } = stubApi();
+
+    await importLinkedIn(CREDS, api, NOW, stubFetch().fetchImpl);
+
+    expect((await getLinks(env.DB)).get(ALICE_URN)).toBe(1);
+    expect(await getPendingForUser(env.DB, 1)).toBeNull();
+    expect(sent.some((m) => m.chatId === 1 && /Linked to Alice Test/.test(m.text))).toBe(true);
+    // Scores land on the same tick the link resolves.
+    expect((await getScoresForDate(env.DB, DATE)).filter((s) => s.user_id === 1)).toHaveLength(7);
+  });
+
+  test('a slug that never appears stays pending, harmlessly', async () => {
+    await ensurePlayer(env.DB, { id: 1, first_name: 'Whoever' });
+    await addPending(env.DB, { publicIdentifier: 'nobody-here', userId: 1, source: 'self' });
+    await importLinkedIn(CREDS, stubApi().api, NOW, stubFetch().fetchImpl);
+    expect(await getPendingForUser(env.DB, 1)).toMatchObject({ public_identifier: 'nobody-here' });
+    expect(await getLinks(env.DB)).toEqual(new Map());
   });
 });
 

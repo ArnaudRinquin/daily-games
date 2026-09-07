@@ -1,6 +1,6 @@
 import type { Api } from 'grammy';
 import type { AppEnv } from '../env';
-import { getLinks, getMeta, setMeta, upsertProfileStatements } from '../db/linkedin';
+import { getLinks, getMeta, resolvePending, setMeta, upsertProfileStatements } from '../db/linkedin';
 import { scoreStatements } from '../db/scores';
 import { postCompletedDigests } from './digest';
 import { nowSeconds, playDate } from '../lib/time';
@@ -71,7 +71,17 @@ export async function importLinkedIn(
 
   // Only linked profiles score. The captain's leaderboard is mostly people who
   // are not in the group at all, so nothing is guessed from names: a player
-  // links themself with /linkedin <profile url>.
+  // links themself with /linkedin <profile url>, and a slug given before the
+  // profile ever showed up resolves here, the first tick it does.
+  for (const { userId, profile } of await resolvePending(env.DB)) {
+    await api
+      .sendMessage(
+        userId,
+        `Linked to ${profile.first_name} ${profile.last_name} on LinkedIn. ` +
+          'Your LinkedIn results now come in on their own.',
+      )
+      .catch(() => {});
+  }
   const links = await getLinks(env.DB);
 
   // Write scores, one batch, then fire the completion trigger for whoever got one.

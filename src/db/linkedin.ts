@@ -109,6 +109,63 @@ export async function getUnlinkedProfiles(db: D1Database): Promise<LinkedInProfi
   return results;
 }
 
+/* ---------- links asked for by slug, before the profile has been seen ---------- */
+
+export interface LinkedInPendingRow {
+  public_identifier: string;
+  user_id: number;
+  source: 'self' | 'admin';
+  created_at: number;
+}
+
+/** One pending slug per player; asking again replaces it. */
+export async function addPending(
+  db: D1Database,
+  params: { publicIdentifier: string; userId: number; source: LinkedInPendingRow['source'] },
+): Promise<void> {
+  await db.batch([
+    db.prepare('DELETE FROM linkedin_pending WHERE user_id = ?').bind(params.userId),
+    db
+      .prepare(
+        'INSERT OR REPLACE INTO linkedin_pending (public_identifier, user_id, source, created_at) VALUES (?, ?, ?, ?)',
+      )
+      .bind(params.publicIdentifier.toLowerCase(), params.userId, params.source, nowSeconds()),
+  ]);
+}
+
+export async function getPendingForUser(db: D1Database, userId: number): Promise<LinkedInPendingRow | null> {
+  return db.prepare('SELECT * FROM linkedin_pending WHERE user_id = ?').bind(userId).first<LinkedInPendingRow>();
+}
+
+export async function clearPending(db: D1Database, userId: number): Promise<boolean> {
+  const r = await db.prepare('DELETE FROM linkedin_pending WHERE user_id = ?').bind(userId).run();
+  return r.meta.changes === 1;
+}
+
+/**
+ * Turn every pending slug whose profile has now been seen into a real link.
+ * Returns what got linked so the caller can tell the players.
+ */
+export async function resolvePending(
+  db: D1Database,
+): Promise<Array<{ userId: number; profile: LinkedInProfileRow }>> {
+  const { results } = await db
+    .prepare(
+      `SELECT pe.user_id, pe.source, pr.*
+       FROM linkedin_pending pe
+       JOIN linkedin_profiles pr ON lower(pr.public_identifier) = pe.public_identifier`,
+    )
+    .all<LinkedInPendingRow & LinkedInProfileRow>();
+
+  const linked: Array<{ userId: number; profile: LinkedInProfileRow }> = [];
+  for (const row of results) {
+    const result = await link(db, { profileUrn: row.profile_urn, userId: row.user_id, source: row.source });
+    await clearPending(db, row.user_id);
+    if (result === 'linked') linked.push({ userId: row.user_id, profile: row });
+  }
+  return linked;
+}
+
 export async function getMeta(db: D1Database, key: string): Promise<string | null> {
   const row = await db.prepare('SELECT value FROM linkedin_meta WHERE key = ?').bind(key).first<{ value: string }>();
   return row?.value ?? null;
