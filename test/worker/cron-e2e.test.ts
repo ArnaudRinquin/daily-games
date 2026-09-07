@@ -63,6 +63,16 @@ async function seedGroup() {
   await addMembership(env.DB, -100, 2);
 }
 
+/** Completion means every selected game, so a test that scores one game selects one game. */
+async function selectOnly(userId: number, games: readonly string[]) {
+  await env.DB.batch([
+    env.DB.prepare('DELETE FROM player_games WHERE user_id = ?').bind(userId),
+    ...games.map((g) =>
+      env.DB.prepare('INSERT INTO player_games (user_id, game) VALUES (?, ?)').bind(userId, g),
+    ),
+  ]);
+}
+
 async function addScore(userId: number, game: string, value: number, display: string) {
   await env.DB.prepare(
     `INSERT INTO scores (user_id, game, play_date, value, display, raw, created_at)
@@ -145,6 +155,8 @@ describe('postDigests', () => {
   });
 
   test('fires early once every active member has submitted', async () => {
+    await selectOnly(1, ['queens']);
+    await selectOnly(2, ['queens']);
     await addScore(1, 'queens', 11, '0:11');
     await addScore(2, 'queens', 42, '0:42');
     const { sent, api } = stubApi();

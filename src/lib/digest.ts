@@ -14,9 +14,13 @@ export const TELEGRAM_MAX_MESSAGE = 4096;
 export function isComplete(members: readonly MemberInfo[], scores: readonly ScoreRow[]): boolean {
   const active = members.filter((m) => m.active);
   if (active.length === 0) return false;
-  const submitted = new Set(scores.map((s) => s.user_id));
-  if (submitted.size === 0) return false;
-  return active.every((m) => submitted.has(m.userId));
+  if (scores.length === 0) return false;
+  const done = new Set(scores.map((s) => `${s.user_id}:${s.game}`));
+  // Every selected game of every active member. "At least one score each"
+  // used to be enough, back when a score meant somebody sat down and pasted
+  // their whole day; with LinkedIn results arriving one game at a time, the
+  // first solved Queens of the morning would otherwise post the board.
+  return active.every((m) => m.games.every((g) => done.has(`${m.userId}:${g}`)));
 }
 
 /** One board per game that at least one member actually played. */

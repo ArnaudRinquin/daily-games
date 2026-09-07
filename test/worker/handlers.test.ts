@@ -234,6 +234,16 @@ describe('the digest posts the moment the group completes', () => {
     await upsertGroup(env.DB, -100, 'Puzzle Crew');
   });
 
+  /** Completion means every selected game, so a test that plays Zip selects Zip. */
+  async function selectOnly(userId: number, games: readonly string[]) {
+    await env.DB.batch([
+      env.DB.prepare('DELETE FROM player_games WHERE user_id = ?').bind(userId),
+      ...games.map((g) =>
+        env.DB.prepare('INSERT INTO player_games (user_id, game) VALUES (?, ?)').bind(userId, g),
+      ),
+    ]);
+  }
+
   test('the last submission triggers it, with no cron involved', async () => {
     const { bot, sent } = testBot();
     await bot.handleUpdate(command(`/start ${encodeGroupPayload(-100)}`));
@@ -250,6 +260,9 @@ describe('the digest posts the moment the group completes', () => {
       },
     } as unknown as Update);
 
+    await selectOnly(USER.id, ['zip']);
+    await selectOnly(OTHER.id, ['zip']);
+
     // Arnaud plays: group not complete yet, nothing posted to the chat.
     await bot.handleUpdate(dm('Zip #533\n0:05 🏁'));
     expect(sent().some((c) => c.payload.chat_id === -100)).toBe(false);
@@ -264,6 +277,7 @@ describe('the digest posts the moment the group completes', () => {
   test('it posts once, not again on the next submission', async () => {
     const { bot, sent } = testBot();
     await bot.handleUpdate(command(`/start ${encodeGroupPayload(-100)}`));
+    await selectOnly(USER.id, ['zip']);
     await bot.handleUpdate(dm('Zip #533\n0:05 🏁'));
     await bot.handleUpdate(dm('Queens #854\n0:11 👑'));
     expect(sent().filter((c) => c.payload.chat_id === -100)).toHaveLength(1);

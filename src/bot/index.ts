@@ -3,6 +3,7 @@ import type { UserFromGetMe } from 'grammy/types';
 import type { AppEnv } from '../env';
 import { registerGroups } from './groups';
 import { registerIngest } from './ingest';
+import { registerLinkedIn } from './linkedin';
 import { registerOnboarding } from './onboarding';
 import type { AppBot, AppContext } from './types';
 
@@ -54,6 +55,7 @@ export function createBot(env: AppEnv): AppBot {
 
   registerGroups(bot);
   registerOnboarding(bot);
+  registerLinkedIn(bot);
   registerIngest(bot);
 
   // No bot.catch: it is ignored in webhook mode. The Worker's webhook route

@@ -36,6 +36,7 @@ export function welcomeText(firstName: string, hour: number, gameCount: number):
     '/links — links to every game',
     '/pause — stop reminders',
     '/shortcut — submit from the iPhone share sheet',
+    '/linkedin — link your LinkedIn so its games import themselves',
   ].join('\n');
 }
 

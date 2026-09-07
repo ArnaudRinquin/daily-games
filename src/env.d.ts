@@ -7,5 +7,8 @@ declare namespace Cloudflare {
   interface Env {
     BOT_TOKEN: string;
     WEBHOOK_SECRET: string;
+    /** LinkedIn session cookies of the captain; unset = no import. */
+    LI_AT?: string;
+    LI_JSESSIONID?: string;
   }
 }

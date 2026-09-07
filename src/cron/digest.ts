@@ -129,9 +129,12 @@ export async function postDigests(env: AppEnv, api: Api, now: Date): Promise<num
 export async function postCompletedDigests(
   env: AppEnv,
   api: Api,
-  userId: number,
+  userId: number | readonly number[],
   date: string,
 ): Promise<number> {
+  // The LinkedIn import lands scores for many players at once; one pass over
+  // the groups covers them all, within the free tier's query budget.
+  const userIds = new Set(typeof userId === 'number' ? [userId] : userId);
   const [membersByChat, groups, dayScores] = await Promise.all([
     getAllGroupMembers(env.DB),
     getActiveGroups(env.DB),
@@ -141,8 +144,8 @@ export async function postCompletedDigests(
   let posted = 0;
   for (const group of groups) {
     const members = membersByChat.get(group.chat_id) ?? [];
-    // Only the groups this player is actually in can have changed.
-    if (!members.some((m) => m.userId === userId)) continue;
+    // Only the groups these players are actually in can have changed.
+    if (!members.some((m) => userIds.has(m.userId))) continue;
 
     const memberIds = new Set(members.map((m) => m.userId));
     const groupScores = dayScores.filter((s) => memberIds.has(s.user_id));
