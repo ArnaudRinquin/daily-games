@@ -2,9 +2,11 @@ import { Hono } from 'hono';
 import { Api } from 'grammy';
 import type { AppEnv } from '../env';
 import { postDigests } from '../cron/digest';
+import { importLinkedIn } from '../cron/linkedin';
 import { sendReminders } from '../cron/reminders';
 import { isVisible, parseAll } from '../games/registry';
 import { replayUnmatched } from '../db/messages';
+import { getUnlinkedProfiles, link } from '../db/linkedin';
 import { offerGameToEveryone } from '../db/players';
 import { playDate } from '../lib/time';
 
@@ -47,6 +49,9 @@ export async function runCron(env: AppEnv, now: Date, source: CronSource) {
 
   // A bare Api needs no getMe call, unlike a Bot that has to init.
   const api = new Api(env.BOT_TOKEN);
+  // Import first: a score that lands now can complete a group, and the
+  // digest pass right after picks that up on the same tick.
+  const imported = await importLinkedIn(env, api, now);
   const [sent, posted] = await Promise.all([
     sendReminders(env, api, now),
     postDigests(env, api, now),
@@ -59,8 +64,8 @@ export async function runCron(env: AppEnv, now: Date, source: CronSource) {
     env.DB.prepare('DELETE FROM cron_runs WHERE ran_at < unixepoch() - 604800'),
   ]);
 
-  console.log('cron', { source, sent, posted, at: now.toISOString() });
-  return { sent, posted, source };
+  console.log('cron', { source, sent, posted, imported, at: now.toISOString() });
+  return { sent, posted, imported, source };
 }
 
 admin.post('/admin/run-cron', async (c) => {
@@ -95,4 +100,19 @@ admin.post('/admin/offer-game', async (c) => {
   const result = await offerGameToEveryone(c.env.DB, game);
   console.log('offer-game', { game, ...result });
   return c.json({ game, ...result });
+});
+
+/** LinkedIn profiles the leaderboard shows that belong to no player yet. */
+admin.get('/admin/linkedin', async (c) => {
+  return c.json({ unlinked: await getUnlinkedProfiles(c.env.DB) });
+});
+
+/** Manual mapping: `{ "profileUrn": "urn:li:fsd_profile:…", "userId": 123 }`. */
+admin.post('/admin/linkedin/link', async (c) => {
+  const body = (await c.req.json().catch(() => null)) as { profileUrn?: unknown; userId?: unknown } | null;
+  if (typeof body?.profileUrn !== 'string' || typeof body.userId !== 'number') {
+    return c.json({ error: 'profileUrn (string) and userId (number) required' }, 400);
+  }
+  const result = await link(c.env.DB, { profileUrn: body.profileUrn, userId: body.userId, source: 'admin' });
+  return c.json({ result }, result === 'linked' ? 200 : 409);
 });

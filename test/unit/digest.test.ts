@@ -29,18 +29,29 @@ const score = (userId: number, game: string, value: number, over: Partial<ScoreR
 
 describe('isComplete', () => {
   const members = [member(1, 'Alice'), member(2, 'Bob')];
+  const alice = [score(1, 'queens', 10), score(1, 'tango', 12)];
+  const bob = [score(2, 'queens', 20), score(2, 'tango', 22)];
 
-  test('true once every active member has at least one score', () => {
-    expect(isComplete(members, [score(1, 'queens', 10), score(2, 'queens', 20)])).toBe(true);
+  test('true once every active member has scored every game they selected', () => {
+    expect(isComplete(members, [...alice, ...bob])).toBe(true);
+  });
+
+  test('one score each is not enough any more: scores arrive one game at a time', () => {
+    expect(isComplete(members, [score(1, 'queens', 10), score(2, 'queens', 20)])).toBe(false);
   });
 
   test('false while someone is missing', () => {
-    expect(isComplete(members, [score(1, 'queens', 10)])).toBe(false);
+    expect(isComplete(members, alice)).toBe(false);
   });
 
   test('a paused player does not block the digest', () => {
     const withPaused = [...members, member(3, 'Chloe', { active: false })];
-    expect(isComplete(withPaused, [score(1, 'queens', 10), score(2, 'queens', 20)])).toBe(true);
+    expect(isComplete(withPaused, [...alice, ...bob])).toBe(true);
+  });
+
+  test('a member with no games selected does not block the digest', () => {
+    const withIdle = [...members, member(3, 'Chloe', { games: [] })];
+    expect(isComplete(withIdle, [...alice, ...bob])).toBe(true);
   });
 
   test('a group with no members never counts as complete', () => {
@@ -54,6 +65,7 @@ describe('isComplete', () => {
 
   test('no scores at all is never complete', () => {
     expect(isComplete(members, [])).toBe(false);
+    expect(isComplete([member(1, 'Alice', { games: [] })], [])).toBe(false);
   });
 });
 

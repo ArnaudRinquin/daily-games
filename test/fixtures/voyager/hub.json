@@ -1,0 +1,500 @@
+{
+ "data": {
+  "data": {
+   "$recipeTypes": [
+    "com.linkedin.8855243f3615570fcbcbc4c701619344"
+   ],
+   "identityDashGameEntryPointsByTypes": {
+    "$recipeTypes": [
+     "com.linkedin.b64bb1e3bf197062555aa9d11ef79931"
+    ],
+    "elements": [
+     {
+      "gameInsights": [
+       {
+        "connectionInsight": {
+         "*profile": [
+          "urn:li:fsd_profile:ACoAAFAKE000xxxxxxxxxxxxxxxxxxxxxxxxx",
+          "urn:li:fsd_profile:ACoAAFAKE001xxxxxxxxxxxxxxxxxxxxxxxxx"
+         ],
+         "insightText": "3 connections played",
+         "$recipeTypes": [
+          "com.linkedin.31d8b362c64120d67557335fbc3b3866"
+         ],
+         "$type": "com.linkedin.voyager.dash.identity.game.ConnectionInsight"
+        },
+        "textInsight": null
+       }
+      ],
+      "*game": "urn:li:fsd_game:(ACoAAFAKE002xxxxxxxxxxxxxxxxxxxxxxxxx,4,91)",
+      "$recipeTypes": [
+       "com.linkedin.11a82b8d84842c31a44adb058fb1aa47"
+      ],
+      "$type": "com.linkedin.voyager.dash.identity.game.GameEntryPoint"
+     },
+     {
+      "gameInsights": [
+       {
+        "connectionInsight": {
+         "*profile": [
+          "urn:li:fsd_profile:ACoAAFAKE003xxxxxxxxxxxxxxxxxxxxxxxxx",
+          "urn:li:fsd_profile:ACoAAFAKE001xxxxxxxxxxxxxxxxxxxxxxxxx"
+         ],
+         "insightText": "4 connections played",
+         "$recipeTypes": [
+          "com.linkedin.31d8b362c64120d67557335fbc3b3866"
+         ],
+         "$type": "com.linkedin.voyager.dash.identity.game.ConnectionInsight"
+        },
+        "textInsight": null
+       }
+      ],
+      "*game": "urn:li:fsd_game:(ACoAAFAKE002xxxxxxxxxxxxxxxxxxxxxxxxx,8,174)",
+      "$recipeTypes": [
+       "com.linkedin.11a82b8d84842c31a44adb058fb1aa47"
+      ],
+      "$type": "com.linkedin.voyager.dash.identity.game.GameEntryPoint"
+     },
+     {
+      "gameInsights": [
+       {
+        "connectionInsight": {
+         "*profile": [
+          "urn:li:fsd_profile:ACoAAFAKE001xxxxxxxxxxxxxxxxxxxxxxxxx",
+          "urn:li:fsd_profile:ACoAAFAKE004xxxxxxxxxxxxxxxxxxxxxxxxx"
+         ],
+         "insightText": "4 connections played",
+         "$recipeTypes": [
+          "com.linkedin.31d8b362c64120d67557335fbc3b3866"
+         ],
+         "$type": "com.linkedin.voyager.dash.identity.game.ConnectionInsight"
+        },
+        "textInsight": null
+       }
+      ],
+      "*game": "urn:li:fsd_game:(ACoAAFAKE002xxxxxxxxxxxxxxxxxxxxxxxxx,6,539)",
+      "$recipeTypes": [
+       "com.linkedin.11a82b8d84842c31a44adb058fb1aa47"
+      ],
+      "$type": "com.linkedin.voyager.dash.identity.game.GameEntryPoint"
+     },
+     {
+      "gameInsights": [
+       {
+        "connectionInsight": null,
+        "textInsight": "The classic game, made mini"
+       }
+      ],
+      "*game": "urn:li:fsd_game:(ACoAAFAKE002xxxxxxxxxxxxxxxxxxxxxxxxx,7,392)",
+      "$recipeTypes": [
+       "com.linkedin.11a82b8d84842c31a44adb058fb1aa47"
+      ],
+      "$type": "com.linkedin.voyager.dash.identity.game.GameEntryPoint"
+     },
+     {
+      "gameInsights": [
+       {
+        "connectionInsight": {
+         "*profile": [
+          "urn:li:fsd_profile:ACoAAFAKE000xxxxxxxxxxxxxxxxxxxxxxxxx",
+          "urn:li:fsd_profile:ACoAAFAKE001xxxxxxxxxxxxxxxxxxxxxxxxx"
+         ],
+         "insightText": "6 connections played",
+         "$recipeTypes": [
+          "com.linkedin.31d8b362c64120d67557335fbc3b3866"
+         ],
+         "$type": "com.linkedin.voyager.dash.identity.game.ConnectionInsight"
+        },
+        "textInsight": null
+       }
+      ],
+      "*game": "urn:li:fsd_game:(ACoAAFAKE002xxxxxxxxxxxxxxxxxxxxxxxxx,5,700)",
+      "$recipeTypes": [
+       "com.linkedin.11a82b8d84842c31a44adb058fb1aa47"
+      ],
+      "$type": "com.linkedin.voyager.dash.identity.game.GameEntryPoint"
+     },
+     {
+      "gameInsights": [
+       {
+        "connectionInsight": {
+         "*profile": [
+          "urn:li:fsd_profile:ACoAAFAKE001xxxxxxxxxxxxxxxxxxxxxxxxx",
+          "urn:li:fsd_profile:ACoAAFAKE000xxxxxxxxxxxxxxxxxxxxxxxxx"
+         ],
+         "insightText": "6 connections played",
+         "$recipeTypes": [
+          "com.linkedin.31d8b362c64120d67557335fbc3b3866"
+         ],
+         "$type": "com.linkedin.voyager.dash.identity.game.ConnectionInsight"
+        },
+        "textInsight": null
+       }
+      ],
+      "*game": "urn:li:fsd_game:(ACoAAFAKE002xxxxxxxxxxxxxxxxxxxxxxxxx,3,860)",
+      "$recipeTypes": [
+       "com.linkedin.11a82b8d84842c31a44adb058fb1aa47"
+      ],
+      "$type": "com.linkedin.voyager.dash.identity.game.GameEntryPoint"
+     },
+     {
+      "gameInsights": [
+       {
+        "connectionInsight": null,
+        "textInsight": "Unlock a trivia ladder"
+       }
+      ],
+      "*game": "urn:li:fsd_game:(ACoAAFAKE002xxxxxxxxxxxxxxxxxxxxxxxxx,2,860)",
+      "$recipeTypes": [
+       "com.linkedin.11a82b8d84842c31a44adb058fb1aa47"
+      ],
+      "$type": "com.linkedin.voyager.dash.identity.game.GameEntryPoint"
+     },
+     {
+      "gameInsights": [
+       {
+        "connectionInsight": null,
+        "textInsight": "Guess the category"
+       }
+      ],
+      "*game": "urn:li:fsd_game:(ACoAAFAKE002xxxxxxxxxxxxxxxxxxxxxxxxx,1,860)",
+      "$recipeTypes": [
+       "com.linkedin.11a82b8d84842c31a44adb058fb1aa47"
+      ],
+      "$type": "com.linkedin.voyager.dash.identity.game.GameEntryPoint"
+     }
+    ],
+    "$type": "com.linkedin.restli.common.CollectionResponse"
+   },
+   "$type": "com.linkedin.8855243f3615570fcbcbc4c701619344"
+  },
+  "extensions": {
+   "webMetadata": {}
+  }
+ },
+ "meta": {
+  "microSchema": {
+   "isGraphQL": true,
+   "version": "2.1",
+   "types": {
+    "com.linkedin.cc27caee9f1daed042981b833277eb5c": {
+     "fields": {
+      "gameTypeId": {
+       "type": "long"
+      },
+      "puzzleId": {
+       "type": "long"
+      },
+      "entityUrn": {
+       "type": "com.linkedin.voyager.dash.common.GameUrn"
+      },
+      "gameStoredRecord": {
+       "type": "com.linkedin.dcdcf8d7bee6e10e6cc60c8dd3d4d0f2"
+      }
+     },
+     "baseType": "com.linkedin.voyager.dash.identity.game.Game"
+    },
+    "com.linkedin.31d8b362c64120d67557335fbc3b3866": {
+     "fields": {
+      "profileUrns": {
+       "type": {
+        "array": "string"
+       }
+      },
+      "insightText": {
+       "type": "string"
+      },
+      "profile": {
+       "resolvedFrom": "profileUrns",
+       "type": {
+        "array": "com.linkedin.fcc119a2fa48c9d7b27c8d1b6d14a19e"
+       }
+      }
+     },
+     "baseType": "com.linkedin.voyager.dash.identity.game.ConnectionInsight"
+    },
+    "com.linkedin.b43c0d8bdcf491c0d8c04c8abbd031eb": {
+     "fields": {
+      "attribution": {
+       "type": "string"
+      },
+      "rootUrl": {
+       "type": "string"
+      },
+      "artifacts": {
+       "type": {
+        "array": "com.linkedin.462047aacec8cc63af3ee057a131e86c"
+       }
+      }
+     },
+     "baseType": "com.linkedin.common.VectorImage"
+    },
+    "com.linkedin.08d4fb65d95d49fea12566f2f153fe60": {
+     "fields": {
+      "displayImageReference": {
+       "type": {
+        "union": {
+         "vectorImage": "com.linkedin.b43c0d8bdcf491c0d8c04c8abbd031eb"
+        }
+       }
+      },
+      "displayImageReferenceResolutionResult": {
+       "derivedFrom": "displayImageReference",
+       "type": {
+        "union": {
+         "vectorImage": "com.linkedin.b43c0d8bdcf491c0d8c04c8abbd031eb"
+        }
+       }
+      }
+     },
+     "baseType": "com.linkedin.voyager.dash.identity.profile.PhotoFilterPicture"
+    },
+    "com.linkedin.11a82b8d84842c31a44adb058fb1aa47": {
+     "fields": {
+      "gameUrn": {
+       "type": "string"
+      },
+      "gameInsightsUnions": {
+       "type": {
+        "array": {
+         "union": {
+          "connectionInsight": "com.linkedin.31d8b362c64120d67557335fbc3b3866",
+          "textInsight": "string"
+         }
+        }
+       }
+      },
+      "game": {
+       "resolvedFrom": "gameUrn",
+       "type": "com.linkedin.cc27caee9f1daed042981b833277eb5c"
+      },
+      "gameInsights": {
+       "derivedFrom": "gameInsightsUnions",
+       "type": {
+        "array": {
+         "union": {
+          "connectionInsight": "com.linkedin.31d8b362c64120d67557335fbc3b3866",
+          "textInsight": "string"
+         }
+        }
+       }
+      }
+     },
+     "baseType": "com.linkedin.voyager.dash.identity.game.GameEntryPoint"
+    },
+    "com.linkedin.b64bb1e3bf197062555aa9d11ef79931": {
+     "fields": {
+      "elements": {
+       "type": {
+        "array": "com.linkedin.11a82b8d84842c31a44adb058fb1aa47"
+       }
+      }
+     },
+     "baseType": "com.linkedin.restli.common.CollectionResponse"
+    },
+    "com.linkedin.462047aacec8cc63af3ee057a131e86c": {
+     "fields": {
+      "width": {
+       "type": "int"
+      },
+      "fileIdentifyingUrlPathSegment": {
+       "type": "string"
+      },
+      "expiresAt": {
+       "type": "com.linkedin.common.Time"
+      },
+      "height": {
+       "type": "int"
+      }
+     },
+     "baseType": "com.linkedin.common.VectorArtifact"
+    },
+    "com.linkedin.8855243f3615570fcbcbc4c701619344": {
+     "fields": {
+      "identityDashGameEntryPointsByTypes": {
+       "type": "com.linkedin.b64bb1e3bf197062555aa9d11ef79931"
+      }
+     },
+     "baseType": "com.linkedin.graphql.Query"
+    },
+    "com.linkedin.dcdcf8d7bee6e10e6cc60c8dd3d4d0f2": {
+     "fields": {
+      "gamePlayState": {
+       "type": "com.linkedin.voyager.dash.identity.game.GamePlayState"
+      }
+     },
+     "baseType": "com.linkedin.voyager.dash.identity.game.GameStoredRecord"
+    },
+    "com.linkedin.fcc119a2fa48c9d7b27c8d1b6d14a19e": {
+     "fields": {
+      "profilePicture": {
+       "type": "com.linkedin.08d4fb65d95d49fea12566f2f153fe60"
+      },
+      "entityUrn": {
+       "type": "com.linkedin.voyager.dash.common.ProfileUrn"
+      }
+     },
+     "baseType": "com.linkedin.voyager.dash.identity.profile.Profile"
+    }
+   }
+  }
+ },
+ "included": [
+  {
+   "gameTypeId": 2,
+   "entityUrn": "urn:li:fsd_game:(ACoAAFAKE002xxxxxxxxxxxxxxxxxxxxxxxxx,2,860)",
+   "gameStoredRecord": {
+    "gamePlayState": "END_SOLVED",
+    "$recipeTypes": [
+     "com.linkedin.dcdcf8d7bee6e10e6cc60c8dd3d4d0f2"
+    ],
+    "$type": "com.linkedin.voyager.dash.identity.game.GameStoredRecord"
+   },
+   "puzzleId": 860,
+   "$recipeTypes": [
+    "com.linkedin.cc27caee9f1daed042981b833277eb5c"
+   ],
+   "$type": "com.linkedin.voyager.dash.identity.game.Game"
+  },
+  {
+   "gameTypeId": 7,
+   "entityUrn": "urn:li:fsd_game:(ACoAAFAKE002xxxxxxxxxxxxxxxxxxxxxxxxx,7,392)",
+   "gameStoredRecord": {
+    "gamePlayState": "END_SOLVED",
+    "$recipeTypes": [
+     "com.linkedin.dcdcf8d7bee6e10e6cc60c8dd3d4d0f2"
+    ],
+    "$type": "com.linkedin.voyager.dash.identity.game.GameStoredRecord"
+   },
+   "puzzleId": 392,
+   "$recipeTypes": [
+    "com.linkedin.cc27caee9f1daed042981b833277eb5c"
+   ],
+   "$type": "com.linkedin.voyager.dash.identity.game.Game"
+  },
+  {
+   "gameTypeId": 5,
+   "entityUrn": "urn:li:fsd_game:(ACoAAFAKE002xxxxxxxxxxxxxxxxxxxxxxxxx,5,700)",
+   "gameStoredRecord": {
+    "gamePlayState": "END_SOLVED",
+    "$recipeTypes": [
+     "com.linkedin.dcdcf8d7bee6e10e6cc60c8dd3d4d0f2"
+    ],
+    "$type": "com.linkedin.voyager.dash.identity.game.GameStoredRecord"
+   },
+   "puzzleId": 700,
+   "$recipeTypes": [
+    "com.linkedin.cc27caee9f1daed042981b833277eb5c"
+   ],
+   "$type": "com.linkedin.voyager.dash.identity.game.Game"
+  },
+  {
+   "gameTypeId": 3,
+   "entityUrn": "urn:li:fsd_game:(ACoAAFAKE002xxxxxxxxxxxxxxxxxxxxxxxxx,3,860)",
+   "gameStoredRecord": {
+    "gamePlayState": "END_SOLVED",
+    "$recipeTypes": [
+     "com.linkedin.dcdcf8d7bee6e10e6cc60c8dd3d4d0f2"
+    ],
+    "$type": "com.linkedin.voyager.dash.identity.game.GameStoredRecord"
+   },
+   "puzzleId": 860,
+   "$recipeTypes": [
+    "com.linkedin.cc27caee9f1daed042981b833277eb5c"
+   ],
+   "$type": "com.linkedin.voyager.dash.identity.game.Game"
+  },
+  {
+   "gameTypeId": 4,
+   "entityUrn": "urn:li:fsd_game:(ACoAAFAKE002xxxxxxxxxxxxxxxxxxxxxxxxx,4,91)",
+   "gameStoredRecord": {
+    "gamePlayState": "END_SOLVED",
+    "$recipeTypes": [
+     "com.linkedin.dcdcf8d7bee6e10e6cc60c8dd3d4d0f2"
+    ],
+    "$type": "com.linkedin.voyager.dash.identity.game.GameStoredRecord"
+   },
+   "puzzleId": 91,
+   "$recipeTypes": [
+    "com.linkedin.cc27caee9f1daed042981b833277eb5c"
+   ],
+   "$type": "com.linkedin.voyager.dash.identity.game.Game"
+  },
+  {
+   "gameTypeId": 6,
+   "entityUrn": "urn:li:fsd_game:(ACoAAFAKE002xxxxxxxxxxxxxxxxxxxxxxxxx,6,539)",
+   "gameStoredRecord": {
+    "gamePlayState": "END_SOLVED",
+    "$recipeTypes": [
+     "com.linkedin.dcdcf8d7bee6e10e6cc60c8dd3d4d0f2"
+    ],
+    "$type": "com.linkedin.voyager.dash.identity.game.GameStoredRecord"
+   },
+   "puzzleId": 539,
+   "$recipeTypes": [
+    "com.linkedin.cc27caee9f1daed042981b833277eb5c"
+   ],
+   "$type": "com.linkedin.voyager.dash.identity.game.Game"
+  },
+  {
+   "gameTypeId": 1,
+   "entityUrn": "urn:li:fsd_game:(ACoAAFAKE002xxxxxxxxxxxxxxxxxxxxxxxxx,1,860)",
+   "gameStoredRecord": {
+    "gamePlayState": "END_SOLVED",
+    "$recipeTypes": [
+     "com.linkedin.dcdcf8d7bee6e10e6cc60c8dd3d4d0f2"
+    ],
+    "$type": "com.linkedin.voyager.dash.identity.game.GameStoredRecord"
+   },
+   "puzzleId": 860,
+   "$recipeTypes": [
+    "com.linkedin.cc27caee9f1daed042981b833277eb5c"
+   ],
+   "$type": "com.linkedin.voyager.dash.identity.game.Game"
+  },
+  {
+   "gameTypeId": 8,
+   "entityUrn": "urn:li:fsd_game:(ACoAAFAKE002xxxxxxxxxxxxxxxxxxxxxxxxx,8,174)",
+   "gameStoredRecord": {
+    "gamePlayState": "END_SOLVED",
+    "$recipeTypes": [
+     "com.linkedin.dcdcf8d7bee6e10e6cc60c8dd3d4d0f2"
+    ],
+    "$type": "com.linkedin.voyager.dash.identity.game.GameStoredRecord"
+   },
+   "puzzleId": 174,
+   "$recipeTypes": [
+    "com.linkedin.cc27caee9f1daed042981b833277eb5c"
+   ],
+   "$type": "com.linkedin.voyager.dash.identity.game.Game"
+  },
+  {
+   "entityUrn": "urn:li:fsd_profile:ACoAAFAKE004xxxxxxxxxxxxxxxxxxxxxxxxx",
+   "$recipeTypes": [
+    "com.linkedin.fcc119a2fa48c9d7b27c8d1b6d14a19e"
+   ],
+   "$type": "com.linkedin.voyager.dash.identity.profile.Profile"
+  },
+  {
+   "entityUrn": "urn:li:fsd_profile:ACoAAFAKE001xxxxxxxxxxxxxxxxxxxxxxxxx",
+   "$recipeTypes": [
+    "com.linkedin.fcc119a2fa48c9d7b27c8d1b6d14a19e"
+   ],
+   "$type": "com.linkedin.voyager.dash.identity.profile.Profile"
+  },
+  {
+   "entityUrn": "urn:li:fsd_profile:ACoAAFAKE000xxxxxxxxxxxxxxxxxxxxxxxxx",
+   "$recipeTypes": [
+    "com.linkedin.fcc119a2fa48c9d7b27c8d1b6d14a19e"
+   ],
+   "$type": "com.linkedin.voyager.dash.identity.profile.Profile"
+  },
+  {
+   "entityUrn": "urn:li:fsd_profile:ACoAAFAKE003xxxxxxxxxxxxxxxxxxxxxxxxx",
+   "$recipeTypes": [
+    "com.linkedin.fcc119a2fa48c9d7b27c8d1b6d14a19e"
+   ],
+   "$type": "com.linkedin.voyager.dash.identity.profile.Profile"
+  }
+ ]
+}

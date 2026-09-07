@@ -23,9 +23,45 @@ the cron, the API and the Mini App.
 2. **Play** — the bot DMs you at your chosen hour with links to your games.
 3. **Paste your results** — in the DM, or straight into the group. Either
    works, and one message can hold a whole day's games.
-4. **Read the board** — posted to the group once everyone has submitted, or at
-   21:00 Paris, whichever comes first. Tap through to the Mini App for
-   today / this week / all time.
+4. **Read the board** — posted to the group once every member has a score for
+   every game they selected, or at 21:00 Paris, whichever comes first. Tap
+   through to the Mini App for today / this week / all time.
+
+### LinkedIn: nobody pastes anything
+
+The eight LinkedIn games import themselves. One player (the captain) is a
+LinkedIn connection of everyone in the group, and LinkedIn shows a
+connection's result for every game they finished. So every ten minutes the
+cron reads the captain's connections leaderboards through LinkedIn's internal
+API ("Voyager", the one linkedin.com itself uses) and stores each ranked row
+under the matching player. Pasting the same result later just rewrites the
+same row; Wordle and the rest still go through paste or the Shortcut.
+
+Setup, once:
+
+```
+wrangler secret put LI_AT            # the captain's li_at cookie (~1 year)
+wrangler secret put LI_JSESSIONID    # their JSESSIONID cookie, e.g. ajax:123…
+```
+
+Both come from Chrome → DevTools → Application → Cookies → linkedin.com.
+Without them the import is a no-op. When the session lapses (401, 403, 999 or
+a redirect to login), the captain gets one DM a day asking for a re-paste.
+
+Mapping LinkedIn profiles to players:
+
+- **Automatic** — a LinkedIn first name matching exactly one player's Telegram
+  first name links them and DMs them to say so. `/linkedin off` undoes it.
+- **Self-service** — `/linkedin https://www.linkedin.com/in/<you>` in the DM.
+  The profile has to have appeared on the leaderboard already.
+- **Operator** — `GET /admin/linkedin` lists unmapped profiles;
+  `POST /admin/linkedin/link {"profileUrn","userId"}` maps one.
+
+Connections who opted out of LinkedIn's leaderboard appear without a rank and
+get nothing imported. The two Voyager queries were lifted from the games hub's
+own traffic (`test/fixtures/voyager/`); their `queryId` hashes can rotate on a
+LinkedIn deploy, in which case the import silently returns nothing until the
+ids in `src/lib/voyager.ts` are refreshed.
 
 ### iPhone: submit from the share sheet
 
