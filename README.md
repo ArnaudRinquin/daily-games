@@ -69,12 +69,14 @@ Mapping LinkedIn profiles to players. The captain's leaderboard is mostly
 people who are not in the group, so nothing is guessed from names:
 
 - **Self-service** — `/linkedin https://www.linkedin.com/in/<you>` in the DM.
-  The profile has to have appeared on the leaderboard already, i.e. be a
-  connection of the captain and have finished a game. `/linkedin off` unlinks.
-  Anyone who pastes a LinkedIn result by hand while unlinked gets this
-  suggested in the ack.
+  If that profile has already shown up on the leaderboard it links at once;
+  otherwise the slug is kept and links itself the first time it appears
+  (which needs them to be a connection of the captain). `/linkedin off`
+  unlinks or cancels. Anyone who pastes a LinkedIn result by hand while
+  unlinked gets this suggested in the ack.
 - **Operator** — `GET /admin/linkedin` lists unmapped profiles;
-  `POST /admin/linkedin/link {"profileUrn","userId"}` maps one.
+  `POST /admin/linkedin/link` with `{"profileUrn","userId"}` maps a seen
+  profile, `{"publicIdentifier","userId"}` pre-feeds a slug.
 
 Connections who opted out of LinkedIn's leaderboard appear without a rank and
 get nothing imported. The two Voyager queries were lifted from the games hub's
