@@ -3,7 +3,7 @@ import { addMembership, upsertGroup } from '../db/groups';
 import { ensurePlayerSeen } from '../db/players';
 import { getPlayerScores } from '../db/scores';
 import { postCompletedDigests } from '../cron/digest';
-import { ackLines, store } from '../lib/ingest';
+import { ackLines, linkedinNudge, store } from '../lib/ingest';
 import { playDate } from '../lib/time';
 import type { AppBot, AppContext } from './types';
 
@@ -61,7 +61,8 @@ export function registerIngest(bot: AppBot): void {
     // Deliberately no rank: the digest is the reveal.
     await ctx.reply(
       `${ackLines(matches)}${date === today ? '' : `\n(counted for ${date})`}\n\n` +
-        `${stored.length} logged for ${date}. Results go up in the group tonight.`,
+        `${stored.length} logged for ${date}. Results go up in the group tonight.` +
+        (await linkedinNudge(ctx.env, userId, matches)),
     );
 
     // This submission may have been the last one missing.
@@ -110,7 +111,8 @@ export function registerIngest(bot: AppBot): void {
     try {
       await ctx.api.sendMessage(
         from.id,
-        `${ackLines(matches)}\n\nPicked that up from "${ctx.chat.title}" — logged for ${date}.`,
+        `${ackLines(matches)}\n\nPicked that up from "${ctx.chat.title}" — logged for ${date}.` +
+          (await linkedinNudge(ctx.env, from.id, matches)),
       );
     } catch {
       // Never started the bot, or blocked it. The score still counts.

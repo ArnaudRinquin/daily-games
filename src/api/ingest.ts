@@ -4,7 +4,7 @@ import type { AppEnv } from '../env';
 import { postCompletedDigests } from '../cron/digest';
 import { getPlayerByToken } from '../db/players';
 import { getPlayerScores } from '../db/scores';
-import { ackLines, store, syntheticMessageId } from '../lib/ingest';
+import { ackLines, linkedinNudge, store, syntheticMessageId } from '../lib/ingest';
 import { nowSeconds, playDate } from '../lib/time';
 
 /**
@@ -58,7 +58,9 @@ ingest.post('/api/ingest/:token', async (c) => {
   if (!isNew) return c.text(`Already logged:\n${ackLines(matches)}`);
 
   const stored = await getPlayerScores(c.env.DB, player.user_id, date);
-  const reply = `${ackLines(matches)}\n\n${stored.length} logged for ${date}.`;
+  const reply =
+    `${ackLines(matches)}\n\n${stored.length} logged for ${date}.` +
+    (await linkedinNudge(c.env, player.user_id, matches));
 
   // Mirror the DM so Telegram history stays the one place everything shows.
   // Fails for anyone who never started the bot; the score still counts.

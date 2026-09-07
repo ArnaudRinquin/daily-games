@@ -37,23 +37,42 @@ API ("Voyager", the one linkedin.com itself uses) and stores each ranked row
 under the matching player. Pasting the same result later just rewrites the
 same row; Wordle and the rest still go through paste or the Shortcut.
 
-Setup, once:
+#### Setting the tokens
 
-```
-wrangler secret put LI_AT            # the captain's li_at cookie (~1 year)
-wrangler secret put LI_JSESSIONID    # their JSESSIONID cookie, e.g. ajax:123…
-```
+The captain's two linkedin.com cookies, stored as Worker secrets. Once a
+year, or whenever the captain gets the "LinkedIn import stopped" DM.
 
-Both come from Chrome → DevTools → Application → Cookies → linkedin.com.
-Without them the import is a no-op. When the session lapses (401, 403, 999 or
-a redirect to login), the captain gets one DM a day asking for a re-paste.
+1. Log in to linkedin.com in Chrome, open DevTools (⌥⌘I).
+2. `JSESSIONID` is readable from the **Console**:
+   ```js
+   copy(document.cookie.match(/JSESSIONID="?([^";]+)/)[1])
+   ```
+   It looks like `ajax:7386723986815546105`.
+3. `li_at` is httpOnly, so no script can read it: **Application** tab →
+   **Cookies** → `https://www.linkedin.com` → filter `li_at` → double-click
+   the Value, copy. It starts with `AQE`.
+4. Store both. Each command prompts for the value (paste, Enter):
+   ```
+   pnpm exec wrangler secret put LI_JSESSIONID
+   pnpm exec wrangler secret put LI_AT
+   ```
+   Secrets take effect on the next cron tick; no redeploy needed.
+5. Check: `wrangler d1 execute daily-games --remote --command "SELECT COUNT(*) FROM linkedin_profiles"`
+   is non-zero within ten minutes.
 
-Mapping LinkedIn profiles to players:
+Without the secrets the import is a no-op. When the session lapses (401, 403,
+999 or a redirect to login), the captain gets one DM a day asking for a
+re-paste. Signing out of LinkedIn on that browser kills `li_at`, so stay
+signed in there. Never commit the values.
 
-- **Automatic** — a LinkedIn first name matching exactly one player's Telegram
-  first name links them and DMs them to say so. `/linkedin off` undoes it.
+Mapping LinkedIn profiles to players. The captain's leaderboard is mostly
+people who are not in the group, so nothing is guessed from names:
+
 - **Self-service** — `/linkedin https://www.linkedin.com/in/<you>` in the DM.
-  The profile has to have appeared on the leaderboard already.
+  The profile has to have appeared on the leaderboard already, i.e. be a
+  connection of the captain and have finished a game. `/linkedin off` unlinks.
+  Anyone who pastes a LinkedIn result by hand while unlinked gets this
+  suggested in the ack.
 - **Operator** — `GET /admin/linkedin` lists unmapped profiles;
   `POST /admin/linkedin/link {"profileUrn","userId"}` maps one.
 

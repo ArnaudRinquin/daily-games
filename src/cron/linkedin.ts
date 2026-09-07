@@ -1,6 +1,6 @@
 import type { Api } from 'grammy';
 import type { AppEnv } from '../env';
-import { getLinks, getMeta, link, setMeta, upsertProfileStatements } from '../db/linkedin';
+import { getLinks, getMeta, setMeta, upsertProfileStatements } from '../db/linkedin';
 import { scoreStatements } from '../db/scores';
 import { postCompletedDigests } from './digest';
 import { nowSeconds, playDate } from '../lib/time';
@@ -28,9 +28,7 @@ import {
 export interface ImportResult {
   /** Scores written this tick — including unchanged ones; the DB does not say. */
   imported: number;
-  /** Players auto-linked by first name this tick. */
-  autoLinked: number;
-  /** Ranked rows whose profile belongs to nobody yet. */
+  /** Ranked rows whose profile belongs to nobody yet: most of the captain's connections. */
   unmatched: number;
   skipped?: 'no-credentials' | 'auth' | 'error';
 }
@@ -40,41 +38,6 @@ export function credentialsOf(env: AppEnv): VoyagerCredentials | null {
   return { liAt: env.LI_AT, jsessionId: env.LI_JSESSIONID };
 }
 
-/**
- * First-name matching, for the common case in a friend group: the LinkedIn
- * first name equals exactly one player's Telegram first name. Anything
- * ambiguous stays unlinked until /linkedin or the admin resolves it.
- */
-export function autoMatch(
-  profiles: readonly { profileUrn: string; firstName: string }[],
-  players: readonly { user_id: number; first_name: string }[],
-  linkedUsers: ReadonlySet<number>,
-): Array<{ profileUrn: string; userId: number }> {
-  const norm = (s: string) => s.trim().toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');
-  const byName = new Map<string, number[]>();
-  for (const p of players) {
-    if (linkedUsers.has(p.user_id)) continue;
-    const key = norm(p.first_name);
-    if (!key) continue;
-    byName.set(key, [...(byName.get(key) ?? []), p.user_id]);
-  }
-  const out: Array<{ profileUrn: string; userId: number }> = [];
-  const claimed = new Set<number>();
-  const seenNames = new Map<string, number>();
-  for (const pr of profiles) seenNames.set(norm(pr.firstName), (seenNames.get(norm(pr.firstName)) ?? 0) + 1);
-  for (const pr of profiles) {
-    const key = norm(pr.firstName);
-    const candidates = byName.get(key);
-    // Exactly one player AND exactly one LinkedIn profile with that name.
-    if (!candidates || candidates.length !== 1 || seenNames.get(key) !== 1) continue;
-    const userId = candidates[0]!;
-    if (claimed.has(userId)) continue;
-    claimed.add(userId);
-    out.push({ profileUrn: pr.profileUrn, userId });
-  }
-  return out;
-}
-
 export async function importLinkedIn(
   env: AppEnv,
   api: Api,
@@ -82,7 +45,7 @@ export async function importLinkedIn(
   fetchImpl: Fetch = fetch,
 ): Promise<ImportResult> {
   const creds = credentialsOf(env);
-  if (!creds) return { imported: 0, autoLinked: 0, unmatched: 0, skipped: 'no-credentials' };
+  if (!creds) return { imported: 0, unmatched: 0, skipped: 'no-credentials' };
 
   const date = playDate(now);
   let games;
@@ -97,36 +60,19 @@ export async function importLinkedIn(
   } catch (error) {
     if (error instanceof VoyagerAuthError) {
       await notifyCaptain(env, api, now, error.message);
-      return { imported: 0, autoLinked: 0, unmatched: 0, skipped: 'auth' };
+      return { imported: 0, unmatched: 0, skipped: 'auth' };
     }
     console.error('linkedin import failed', { error: String(error) });
-    return { imported: 0, autoLinked: 0, unmatched: 0, skipped: 'error' };
+    return { imported: 0, unmatched: 0, skipped: 'error' };
   }
 
   const allRows = perGame.flatMap((g) => g.rows);
   if (allRows.length > 0) await env.DB.batch(upsertProfileStatements(env.DB, allRows));
 
-  // Auto-link by first name, then read the links back in one go.
-  let links = await getLinks(env.DB);
-  const { results: players } = await env.DB
-    .prepare('SELECT user_id, first_name FROM players WHERE active = 1')
-    .all<{ user_id: number; first_name: string }>();
-  const unlinkedProfiles = uniqueBy(allRows, (r) => r.profileUrn).filter((r) => !links.has(r.profileUrn));
-  let autoLinked = 0;
-  for (const m of autoMatch(unlinkedProfiles, players, new Set(links.values()))) {
-    if ((await link(env.DB, { ...m, source: 'auto' })) !== 'linked') continue;
-    autoLinked++;
-    const profile = unlinkedProfiles.find((p) => p.profileUrn === m.profileUrn);
-    await api
-      .sendMessage(
-        m.userId,
-        `Linked you to LinkedIn as ${profile?.firstName ?? ''} ${profile?.lastName ?? ''}. ` +
-          'Your LinkedIn game results now come in on their own, no need to share them. ' +
-          'Not you? Send /linkedin off.',
-      )
-      .catch(() => {});
-  }
-  if (autoLinked > 0) links = await getLinks(env.DB);
+  // Only linked profiles score. The captain's leaderboard is mostly people who
+  // are not in the group at all, so nothing is guessed from names: a player
+  // links themself with /linkedin <profile url>.
+  const links = await getLinks(env.DB);
 
   // Write scores, one batch, then fire the completion trigger for whoever got one.
   const statements: D1PreparedStatement[] = [];
@@ -149,12 +95,7 @@ export async function importLinkedIn(
 
   if (touched.size > 0) await postCompletedDigests(env, api, [...touched], date);
 
-  return { imported: statements.length, autoLinked, unmatched };
-}
-
-function uniqueBy<T>(items: readonly T[], key: (t: T) => string): T[] {
-  const seen = new Set<string>();
-  return items.filter((i) => (seen.has(key(i)) ? false : (seen.add(key(i)), true)));
+  return { imported: statements.length, unmatched };
 }
 
 /** What lands in scores.raw: enough to reparse, and to tell an import from a paste. */
