@@ -37,16 +37,33 @@ API ("Voyager", the one linkedin.com itself uses) and stores each ranked row
 under the matching player. Pasting the same result later just rewrites the
 same row; Wordle and the rest still go through paste or the Shortcut.
 
-Setup, once:
+#### Setting the tokens
 
-```
-wrangler secret put LI_AT            # the captain's li_at cookie (~1 year)
-wrangler secret put LI_JSESSIONID    # their JSESSIONID cookie, e.g. ajax:123…
-```
+The captain's two linkedin.com cookies, stored as Worker secrets. Once a
+year, or whenever the captain gets the "LinkedIn import stopped" DM.
 
-Both come from Chrome → DevTools → Application → Cookies → linkedin.com.
-Without them the import is a no-op. When the session lapses (401, 403, 999 or
-a redirect to login), the captain gets one DM a day asking for a re-paste.
+1. Log in to linkedin.com in Chrome, open DevTools (⌥⌘I).
+2. `JSESSIONID` is readable from the **Console**:
+   ```js
+   copy(document.cookie.match(/JSESSIONID="?([^";]+)/)[1])
+   ```
+   It looks like `ajax:7386723986815546105`.
+3. `li_at` is httpOnly, so no script can read it: **Application** tab →
+   **Cookies** → `https://www.linkedin.com` → filter `li_at` → double-click
+   the Value, copy. It starts with `AQE`.
+4. Store both. Each command prompts for the value (paste, Enter):
+   ```
+   pnpm exec wrangler secret put LI_JSESSIONID
+   pnpm exec wrangler secret put LI_AT
+   ```
+   Secrets take effect on the next cron tick; no redeploy needed.
+5. Check: `wrangler d1 execute daily-games --remote --command "SELECT COUNT(*) FROM linkedin_profiles"`
+   is non-zero within ten minutes.
+
+Without the secrets the import is a no-op. When the session lapses (401, 403,
+999 or a redirect to login), the captain gets one DM a day asking for a
+re-paste. Signing out of LinkedIn on that browser kills `li_at`, so stay
+signed in there. Never commit the values.
 
 Mapping LinkedIn profiles to players:
 
