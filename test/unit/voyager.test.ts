@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'vitest';
-import { autoMatch } from '../../src/cron/linkedin';
 import { publicIdentifierOf } from '../../src/bot/linkedin';
 import {
   GAME_TYPES,
@@ -88,30 +87,6 @@ describe('scoreOf', () => {
 test('leaderboardUrl percent-encodes the urn tuple the Rest.li way', () => {
   const url = leaderboardUrl({ memberId: 'ABC', gameTypeId: 3, puzzleId: 860, solved: true }, 25);
   expect(url).toContain('gameUrn:urn%3Ali%3Afsd_game%3A%28ABC%2C3%2C860%29,start:25,count:25');
-});
-
-describe('autoMatch', () => {
-  const profiles = [
-    { profileUrn: 'u:alice', firstName: 'Alice' },
-    { profileUrn: 'u:bob', firstName: 'Bob' },
-    { profileUrn: 'u:bob2', firstName: 'Bob' },
-    { profileUrn: 'u:chloe', firstName: 'Chloé' },
-  ];
-  const players = [
-    { user_id: 1, first_name: 'alice' },
-    { user_id: 2, first_name: 'Bob' },
-    { user_id: 3, first_name: 'Chloe' },
-    { user_id: 4, first_name: 'Chloe' },
-  ];
-
-  test('links only unambiguous first names, accent- and case-insensitively', () => {
-    // Alice: one profile, one player. Bob: two profiles. Chloé: two players.
-    expect(autoMatch(profiles, players, new Set())).toEqual([{ profileUrn: 'u:alice', userId: 1 }]);
-  });
-
-  test('already-linked players are out of the running', () => {
-    expect(autoMatch(profiles, players, new Set([1]))).toEqual([]);
-  });
 });
 
 describe('publicIdentifierOf', () => {

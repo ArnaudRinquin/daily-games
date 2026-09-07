@@ -1,7 +1,30 @@
 import { gameById, parseAll } from '../games/registry';
+import { linkedinGames } from '../games/linkedin';
+import { getLinkForUser } from '../db/linkedin';
 import { logMessageStatement } from '../db/messages';
+
+const LINKEDIN_GAME_IDS = new Set(linkedinGames.map((g) => g.id));
 import { scoreStatements } from '../db/scores';
 import { playDate } from './time';
+
+/**
+ * Appended to the ack when somebody pastes a LinkedIn result by hand while
+ * the import could have done it for them. Empty once they are linked, or when
+ * no LinkedIn game is in the paste, or when the import is not configured.
+ */
+export async function linkedinNudge(
+  env: { DB: D1Database; LI_AT?: string | undefined },
+  userId: number,
+  matches: readonly { game: string }[],
+): Promise<string> {
+  if (!env.LI_AT) return '';
+  if (!matches.some((m) => LINKEDIN_GAME_IDS.has(m.game))) return '';
+  if (await getLinkForUser(env.DB, userId)) return '';
+  return (
+    '\n\nYou don\'t have to share LinkedIn results by hand. Send me your profile, ' +
+    '/linkedin https://www.linkedin.com/in/your-name, and I\'ll fetch them myself from now on.'
+  );
+}
 
 export function ackLines(matches: readonly { game: string; display: string }[]): string {
   return matches

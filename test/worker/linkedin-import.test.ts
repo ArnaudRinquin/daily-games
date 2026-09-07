@@ -3,11 +3,11 @@ import type { Api } from 'grammy';
 import { beforeAll, beforeEach, describe, expect, test } from 'vitest';
 import { importLinkedIn } from '../../src/cron/linkedin';
 import { addMembership, upsertGroup } from '../../src/db/groups';
-import { getLinks, getUnlinkedProfiles, link } from '../../src/db/linkedin';
+import { getUnlinkedProfiles, link } from '../../src/db/linkedin';
 import { ensurePlayer, toggleGame } from '../../src/db/players';
 import { getScoresForDate } from '../../src/db/scores';
+import { linkedinNudge } from '../../src/lib/ingest';
 import type { Fetch } from '../../src/lib/voyager';
-
 import hubFixture from '../fixtures/voyager/hub.json';
 import leaderboardFixture from '../fixtures/voyager/leaderboard.json';
 
@@ -78,28 +78,31 @@ describe('importLinkedIn', () => {
     expect(calls.filter((u) => u.includes('GameConnectionsEntities'))).toHaveLength(8);
   });
 
-  test('every profile seen is remembered; nobody linked means no scores', async () => {
-    const { fetchImpl } = stubFetch();
-    const result = await importLinkedIn(CREDS, stubApi().api, NOW, fetchImpl);
-    expect(result).toMatchObject({ imported: 0, autoLinked: 0 });
-    expect(result.unmatched).toBeGreaterThan(0);
-    expect(await getUnlinkedProfiles(env.DB)).toHaveLength(7);
-    expect(await getScoresForDate(env.DB, DATE)).toEqual([]);
-  });
-
-  test('auto-links by first name, tells the player, and scores them', async () => {
+  test('every profile seen is remembered; nobody linked means no scores, no guessing by name', async () => {
+    // A player with the same first name as a leaderboard row: still not linked.
     await ensurePlayer(env.DB, { id: 1, first_name: 'Alice' });
     const { fetchImpl } = stubFetch();
     const { sent, api } = stubApi();
-
     const result = await importLinkedIn(CREDS, api, NOW, fetchImpl);
+    expect(result.imported).toBe(0);
+    expect(result.unmatched).toBeGreaterThan(0);
+    expect(await getUnlinkedProfiles(env.DB)).toHaveLength(7);
+    expect(await getScoresForDate(env.DB, DATE)).toEqual([]);
+    expect(sent).toEqual([]);
+  });
 
-    expect(result.autoLinked).toBe(1);
-    expect((await getLinks(env.DB)).get(ALICE_URN)).toBe(1);
-    expect(sent.some((m) => m.chatId === 1 && /Linked you to LinkedIn as Alice Test/.test(m.text))).toBe(true);
-    // The fixture is the same board for all 8 games: Alice at 0:11 everywhere.
+  test('a linked player gets every game they finished', async () => {
+    await ensurePlayer(env.DB, { id: 1, first_name: 'Alice' });
+    const { fetchImpl } = stubFetch();
+    await importLinkedIn(CREDS, stubApi().api, NOW, fetchImpl); // profiles now known
+    expect(await link(env.DB, { profileUrn: ALICE_URN, userId: 1, source: 'self' })).toBe('linked');
+
+    await importLinkedIn(CREDS, stubApi().api, NOW, fetchImpl);
+
+    // The fixture is the same board for all 8 games: Alice at 0:11 everywhere,
+    // except Pinpoint, whose guess count the fixture lacks.
     const scores = await getScoresForDate(env.DB, DATE);
-    expect(scores.filter((s) => s.user_id === 1)).toHaveLength(7); // pinpoint has no timeElapsed → skipped
+    expect(scores.filter((s) => s.user_id === 1)).toHaveLength(7);
     expect(scores.find((s) => s.game === 'queens')).toMatchObject({ user_id: 1, value: 11, display: '0:11' });
   });
 
@@ -107,8 +110,9 @@ describe('importLinkedIn', () => {
     await ensurePlayer(env.DB, { id: 1, first_name: 'Alice' });
     const { fetchImpl } = stubFetch();
     await importLinkedIn(CREDS, stubApi().api, NOW, fetchImpl);
-    const again = await importLinkedIn(CREDS, stubApi().api, NOW, fetchImpl);
-    expect(again.autoLinked).toBe(0);
+    await link(env.DB, { profileUrn: ALICE_URN, userId: 1, source: 'self' });
+    await importLinkedIn(CREDS, stubApi().api, NOW, fetchImpl);
+    await importLinkedIn(CREDS, stubApi().api, NOW, fetchImpl);
     expect((await getScoresForDate(env.DB, DATE)).filter((s) => s.user_id === 1)).toHaveLength(7);
   });
 
@@ -121,6 +125,8 @@ describe('importLinkedIn', () => {
       await toggleGame(env.DB, 1, game);
     }
     const { fetchImpl } = stubFetch();
+    await importLinkedIn(CREDS, stubApi().api, NOW, fetchImpl);
+    await link(env.DB, { profileUrn: ALICE_URN, userId: 1, source: 'self' });
     const { sent, api } = stubApi();
 
     await importLinkedIn(CREDS, api, NOW, fetchImpl);
@@ -142,5 +148,23 @@ describe('importLinkedIn', () => {
     expect(first.skipped).toBe('auth');
     expect(second.skipped).toBe('auth');
     expect(sent.filter((m) => m.chatId === 7 && /LinkedIn import stopped/.test(m.text))).toHaveLength(1);
+  });
+});
+
+describe('linkedinNudge', () => {
+  const queens = [{ game: 'queens' }];
+
+  test('nudges an unlinked player who pasted a LinkedIn game', async () => {
+    await ensurePlayer(env.DB, { id: 1, first_name: 'Alice' });
+    expect(await linkedinNudge(CREDS, 1, queens)).toMatch(/\/linkedin https:\/\/www\.linkedin\.com\/in\//);
+  });
+
+  test('silent once linked, for non-LinkedIn games, and when the import is off', async () => {
+    await ensurePlayer(env.DB, { id: 1, first_name: 'Alice' });
+    expect(await linkedinNudge(CREDS, 1, [{ game: 'wordle' }])).toBe('');
+    expect(await linkedinNudge({ DB: env.DB }, 1, queens)).toBe('');
+    await importLinkedIn(CREDS, stubApi().api, NOW, stubFetch().fetchImpl);
+    await link(env.DB, { profileUrn: ALICE_URN, userId: 1, source: 'self' });
+    expect(await linkedinNudge(CREDS, 1, queens)).toBe('');
   });
 });

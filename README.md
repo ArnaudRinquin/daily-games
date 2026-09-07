@@ -65,12 +65,14 @@ Without the secrets the import is a no-op. When the session lapses (401, 403,
 re-paste. Signing out of LinkedIn on that browser kills `li_at`, so stay
 signed in there. Never commit the values.
 
-Mapping LinkedIn profiles to players:
+Mapping LinkedIn profiles to players. The captain's leaderboard is mostly
+people who are not in the group, so nothing is guessed from names:
 
-- **Automatic** — a LinkedIn first name matching exactly one player's Telegram
-  first name links them and DMs them to say so. `/linkedin off` undoes it.
 - **Self-service** — `/linkedin https://www.linkedin.com/in/<you>` in the DM.
-  The profile has to have appeared on the leaderboard already.
+  The profile has to have appeared on the leaderboard already, i.e. be a
+  connection of the captain and have finished a game. `/linkedin off` unlinks.
+  Anyone who pastes a LinkedIn result by hand while unlinked gets this
+  suggested in the ack.
 - **Operator** — `GET /admin/linkedin` lists unmapped profiles;
   `POST /admin/linkedin/link {"profileUrn","userId"}` maps one.
 
