@@ -3,7 +3,7 @@ import type { AppEnv } from '../env';
 import { getLinks, getMeta, resolvePending, setMeta, upsertProfileStatements } from '../db/linkedin';
 import { scoreStatements } from '../db/scores';
 import { postCompletedDigests } from './digest';
-import { nowSeconds, playDate } from '../lib/time';
+import { linkedInPlayDate, nowSeconds } from '../lib/time';
 import {
   fetchHub,
   fetchLeaderboard,
@@ -47,7 +47,7 @@ export async function importLinkedIn(
   const creds = credentialsOf(env);
   if (!creds) return { imported: 0, unmatched: 0, skipped: 'no-credentials' };
 
-  const date = playDate(now);
+  const date = linkedInPlayDate(now);
   let games;
   const perGame: Array<{ gameTypeId: number; rows: LeaderboardRow[] }> = [];
   try {

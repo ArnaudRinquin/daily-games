@@ -78,6 +78,19 @@ export function playDate(at: Date, tz: string = DEFAULT_TZ): string {
   return hour < DAY_ROLLOVER_HOUR ? addDays(date, -1) : date;
 }
 
+/**
+ * LinkedIn's puzzles roll over at midnight Pacific, 09:00 Paris most of the
+ * year (08:00 or 10:00 for the few weeks the two DST switches disagree). The
+ * captain's leaderboard only ever shows the current puzzle, so a tick between
+ * 04:00 and 09:00 Paris would otherwise file yesterday's board under today.
+ * The puzzle day is simply the calendar date in Los Angeles.
+ */
+export const LINKEDIN_TZ = 'America/Los_Angeles';
+
+export function linkedInPlayDate(at: Date): string {
+  return parisDate(at, LINKEDIN_TZ);
+}
+
 /** Pure calendar arithmetic on a YYYY-MM-DD string — no timezone involved. */
 export function addDays(isoDate: string, days: number): string {
   const ms = Date.parse(`${isoDate}T00:00:00Z`);
