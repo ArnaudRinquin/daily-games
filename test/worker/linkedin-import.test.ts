@@ -107,6 +107,18 @@ describe('importLinkedIn', () => {
     expect(scores.find((s) => s.game === 'queens')).toMatchObject({ user_id: 1, value: 11, display: '0:11' });
   });
 
+  test('a tick before 09:00 Paris files the board under the previous puzzle day', async () => {
+    await ensurePlayer(env.DB, { id: 1, first_name: 'Alice' });
+    const { fetchImpl } = stubFetch();
+    await importLinkedIn(CREDS, stubApi().api, NOW, fetchImpl);
+    await link(env.DB, { profileUrn: ALICE_URN, userId: 1, source: 'self' });
+
+    // 04:10Z = 06:10 Paris on the 8th, but LinkedIn is still on the 7th's puzzle.
+    await importLinkedIn(CREDS, stubApi().api, new Date('2026-09-08T04:10:00Z'), fetchImpl);
+    expect((await getScoresForDate(env.DB, '2026-09-08')).filter((s) => s.user_id === 1)).toHaveLength(0);
+    expect((await getScoresForDate(env.DB, DATE)).filter((s) => s.user_id === 1)).toHaveLength(7);
+  });
+
   test('a second tick rewrites the same rows, never duplicates', async () => {
     await ensurePlayer(env.DB, { id: 1, first_name: 'Alice' });
     const { fetchImpl } = stubFetch();

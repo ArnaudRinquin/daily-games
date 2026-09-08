@@ -7,6 +7,7 @@ import {
   localParts,
   parisDate,
   parisHour,
+  linkedInPlayDate,
   playDate,
 } from '../../src/lib/time';
 
@@ -60,6 +61,30 @@ describe('playDate rollover at 04:00 Paris', () => {
   test('crosses the year boundary', () => {
     expect(playDate(at('2026-12-31T23:30:00Z'))).toBe('2026-12-31');
     expect(playDate(at('2027-01-01T04:00:00Z'))).toBe('2027-01-01');
+  });
+});
+
+describe('linkedInPlayDate rolls over at midnight Pacific', () => {
+  test('06:00 Paris in summer is still yesterday\'s puzzle', () => {
+    // 04:00Z = 06:00 CEST = 21:00 PDT the day before
+    expect(playDate(at('2026-07-15T04:00:00Z'))).toBe('2026-07-15');
+    expect(linkedInPlayDate(at('2026-07-15T04:00:00Z'))).toBe('2026-07-14');
+  });
+
+  test('09:00 Paris in summer is the new puzzle', () => {
+    expect(linkedInPlayDate(at('2026-07-15T06:59:00Z'))).toBe('2026-07-14');
+    expect(linkedInPlayDate(at('2026-07-15T07:00:00Z'))).toBe('2026-07-15');
+  });
+
+  test('09:00 Paris in winter is the new puzzle', () => {
+    expect(linkedInPlayDate(at('2026-01-15T07:59:00Z'))).toBe('2026-01-14');
+    expect(linkedInPlayDate(at('2026-01-15T08:00:00Z'))).toBe('2026-01-15');
+  });
+
+  test('between the DST switches the gap is 8 hours, not 9', () => {
+    // 2026-03-08 US springs forward, Europe waits until 03-29: PDT vs CET
+    expect(linkedInPlayDate(at('2026-03-15T06:59:00Z'))).toBe('2026-03-14');
+    expect(linkedInPlayDate(at('2026-03-15T07:00:00Z'))).toBe('2026-03-15');
   });
 });
 
