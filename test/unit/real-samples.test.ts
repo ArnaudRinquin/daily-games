@@ -51,6 +51,7 @@ https://geozee.earth?ref=share`,
 ─────────
 1.72× score · top 6%
 fermi.gg/s/daily`,
+  tupo: '#Tupo - Oct 29th 2026 (Medium)⏱️ Solved in 3:26🔍 5 checks💡 2 hints🎯 46 moves (26 minimum)Play at https://playtupo.com',
 };
 
 describe('real share text, one game at a time', () => {
@@ -67,6 +68,7 @@ describe('real share text, one game at a time', () => {
     lemot: { game: 'lemot', value: 5, display: '5/6' },
     geozee: { game: 'geozee', value: -257, display: '257/742' },
     fermi: { game: 'fermi', value: 1.72, display: '1.72×' },
+    tupo: { game: 'tupo', value: 206, display: '3:26' },
   };
 
   for (const key of Object.keys(SAMPLES) as (keyof typeof SAMPLES)[]) {
@@ -199,6 +201,7 @@ describe('a whole day pasted at once', () => {
       'pinpoint',
       'queens',
       'tango',
+      'tupo',
       'wend',
       'wordle',
       'zip',
@@ -219,6 +222,6 @@ describe('a whole day pasted at once', () => {
       .map(([, v]) => v)
       .join('\n\n');
     expect(parseAll(withoutZip).map((m) => m.game)).not.toContain('zip');
-    expect(parseAll(withoutZip)).toHaveLength(11);
+    expect(parseAll(withoutZip)).toHaveLength(12);
   });
 });

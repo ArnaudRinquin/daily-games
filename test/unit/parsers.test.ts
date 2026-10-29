@@ -21,6 +21,7 @@ describe('catalog', () => {
       'waffle',
       'fermi',
       'geozee',
+      'tupo',
       'lts_abordable',
       'lts_expert',
     ]);

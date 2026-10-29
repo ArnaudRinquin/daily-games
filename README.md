@@ -113,6 +113,7 @@ CLI (`shortcuts sign --mode anyone`); it lives in `web/public/`.
 | 🧇 Waffle | yes | `waffle` | https://wafflegame.net/ |
 | 🧮 Fermi | yes | `fermi` | https://fermi.gg/ |
 | 🌍 Geozee | yes | `geozee` | https://geozee.earth/ |
+| 🔢 Tupo | yes | `tupo` | https://playtupo.com/ |
 | 📗 Table des Savoirs · Abordable | yes | `lts_abordable` | https://latabledessavoirs.fr/abordable |
 | 📕 Table des Savoirs · Expert | yes | `lts_expert` | https://latabledessavoirs.fr/difficile |
 

@@ -134,7 +134,7 @@ describe('importLinkedIn', () => {
     await upsertGroup(env.DB, -100, 'Friends');
     await addMembership(env.DB, -100, 1);
     // Alice only plays Queens, and the import brings Queens.
-    for (const game of ['tango', 'zip', 'wend', 'crossclimb', 'minisudoku', 'patches', 'pinpoint', 'wordle', 'lemot', 'waffle', 'fermi', 'geozee', 'lts_abordable', 'lts_expert']) {
+    for (const game of ['tango', 'zip', 'wend', 'crossclimb', 'minisudoku', 'patches', 'pinpoint', 'wordle', 'lemot', 'waffle', 'fermi', 'geozee', 'tupo', 'lts_abordable', 'lts_expert']) {
       await toggleGame(env.DB, 1, game);
     }
     const { fetchImpl } = stubFetch();
