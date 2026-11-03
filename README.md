@@ -13,6 +13,8 @@ pasted share text into a chat, where it scrolled away untallied.
 Runs entirely on the Cloudflare free tier — one Worker holds the bot webhook,
 the cron, the API and the Mini App.
 
+Want to build your own? See [RECIPE.md](RECIPE.md).
+
 ---
 
 ## How it works
@@ -307,95 +309,8 @@ pnpm exec wrangler deploy --env dev
 
 ## Design notes
 
-Decisions that are not obvious from the code.
-
-**Everything goes through `lib/time.ts`.** Cloudflare cron is UTC-only and
-France shifts between UTC+1 and UTC+2. Nothing derives a date or hour from UTC.
-The day rolls over at **04:00 Paris**, so a result pasted at 00:30 counts for
-the day just played.
-
-**Parsers fail strictly.** A message that `detect()` matches but `parse()`
-cannot read is dropped rather than guessed, so it stays in the calibration
-corpus instead of being scored wrongly and silently.
-
-**The share format differs by platform.** Web puts the score after a pipe on the
-header line; the iOS app puts it on the next line with no pipe. Both are
-covered, and the parser will not reach further down the message than that.
-
-**Group commands.** `/board` posts the current standings on demand and
-deliberately does *not* claim the day's digest, so asking at lunchtime does not
-cost you the evening post. `/links` and `/status` also work in a group.
-`/games`, `/time`, `/pause` and `/resume` stay DM-only: an inline keyboard
-posted in a group can be tapped by anyone, and the callback handlers key on
-whoever tapped — a second person would silently rewrite a shared message to
-show their own selection.
-
-**A group message is stored if it looks like anyone's result**, not only one we
-can parse — an emoji grid, or the `#game1684 0/5` shape. The first Waffle score
-ever posted was discarded because no Waffle parser existed yet, which is
-precisely the message the corpus is for.
-
-**Group ingestion needs privacy mode off.** People paste results into the group
-out of habit, and that used to fail invisibly — the bot could not even say so,
-because it never saw the message. Reading groups also sidesteps the platform's
-hardest constraint: a bot cannot DM someone who has never started it, but it
-can rank what they post. Such players are created **inactive**, because marking
-them active would queue a reminder that fails and retries every tick forever.
-
-**Message ids are per chat, not per user.** The same person's DM #5 and group #5
-are both "message 5", so `messages` is keyed on `(chat_id, tg_message_id)`.
-
-**Ingestion is one transaction.** The message log and the score writes go in a
-single `db.batch`, so a message is never recorded as parsed without its scores
-landing too.
-
-**The digest does not wait for a scheduler in the common case.** Completion is
-checked when a score is stored, so the moment the last person submits, the board
-goes up. The cron only has to cover the 21:00 cutoff — the case where somebody
-has *not* played. Both paths share the `digests` claim table, so they cannot
-double-post. This exists because two independent schedulers proved unreliable
-here: Cloudflare's Cron Triggers never fired at all, and GitHub Actions
-delivered two scheduled runs in six hours.
-
-**The scheduler is assumed to be unreliable.** GitHub Actions delivers
-scheduled runs late and sometimes not at all, so nothing depends on a tick
-landing in a particular hour: reminders fire at or after their hour, and a
-digest missed overnight is caught up the next day. Sparse ticks cost
-punctuality, not correctness.
-
-**Reminders fire at or after their hour, never only during it.** Matching the
-current hour exactly assumes a tick lands inside every single hour; miss 09:00
-and everyone set to 09:00 silently gets nothing that day. The `reminders` claim
-table still guarantees one per person per day, and nothing goes out after the
-digest cutoff.
-
-**A digest missed overnight is caught up.** The play date rolls over at 04:00,
-so without a backward look a day whose cutoff passed with no tick would never
-post at all. Each tick also considers yesterday, once, and only if somebody
-actually played.
-
-**Idempotency.** Cron delivery is at-least-once and fires four times an hour;
-completion and cutoff can both fire for the same day. `reminders` and `digests`
-are claim tables — claim first, send second, release the claim if the send
-throws so the next tick retries.
-
-**The webhook fails closed and answers 200.** A plain `provided !== expected`
-compares `undefined` to `undefined` when the secret is unset — false — so an
-unconfigured Worker would accept every request. Separately, grammY does *not*
-route errors through `bot.catch` in webhook mode, so the route catches: every
-write commits before a reply is attempted, and ingestion is idempotent, so a
-non-2xx would only make Telegram redeliver an update with nothing left to do.
-
-**`initData` verification excludes only `hash`.** `signature` is part of the
-signed set. Excluding it made every real Mini App launch fail with `bad-hash`.
-
-**`botInfo` is supplied, not fetched**, or grammY calls `getMe` on every single
-update: a wasted subrequest against the free tier's 50, and one more way for an
-update to fail.
-
-**Ranking fields come from today's roster.** Deselecting a game retroactively
-shrinks every past field for it. Fine at six people; fixing it means
-snapshotting the field per day.
+Moved to [RECIPE.md](RECIPE.md#5-design-decisions-and-gotchas), with the
+architecture and a build-your-own walkthrough.
 
 ---
 
