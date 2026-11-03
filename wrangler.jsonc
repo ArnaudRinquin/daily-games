@@ -1,6 +1,8 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "daily-games",
+  // Bot lives on the me@arnaud.rocks account; pinned so multi-account logins and CI pick it.
+  "account_id": "c02fb6c7051ec5e3c7af54415db85a4e",
   "main": "src/index.ts",
   "compatibility_date": "2026-08-15",
   "observability": { "enabled": true },

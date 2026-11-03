@@ -32,6 +32,17 @@ Play at https://playtupo.com`;
     expect(parseAll(text)).toEqual([{ game: 'tupo', value: 187, display: '3:07' }]);
   });
 
+  test('parses an Easy share with "rd" ordinal', () => {
+    // Verbatim, as pasted by a player.
+    const text = `#Tupo - Nov 3rd 2026 (Easy)
+⏱️ Solved in 3:01
+🔍 0 checks
+💡 3 hints
+🎯 27 moves (22 minimum)
+Play at https://playtupo.com`;
+    expect(parseAll(text)).toEqual([{ game: 'tupo', value: 181, display: '3:01' }]);
+  });
+
   test('minutes are unbounded', () => {
     expect(tupo.parse('#Tupo - Nov 2nd 2026 (Easy)\n⏱️ Solved in 63:05')?.value).toBe(3785);
   });
