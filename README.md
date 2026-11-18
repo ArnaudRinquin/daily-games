@@ -31,7 +31,7 @@ Want to build your own? See [RECIPE.md](RECIPE.md).
 
 ### LinkedIn: nobody pastes anything
 
-The eight LinkedIn games import themselves. One player (the captain) is a
+The nine LinkedIn games import themselves. One player (the captain) is a
 LinkedIn connection of everyone in the group, and LinkedIn shows a
 connection's result for every game they finished. So every ten minutes the
 cron reads the captain's connections leaderboards through LinkedIn's internal
@@ -88,7 +88,7 @@ ids in `src/lib/voyager.ts` are refreshed.
 
 ### iPhone: submit from the share sheet
 
-Copying eight share texts into Telegram every day is the chore this removes.
+Copying nine share texts into Telegram every day is the chore this removes.
 Send `/shortcut` to the bot: it replies with a link to a signed Shortcut and a
 personal URL. Install the Shortcut, paste the URL when asked, and from then on
 every game is **Share → Share via → Daily Games**. The result is logged over
@@ -109,6 +109,7 @@ CLI (`shortcuts sign --mode anyone`); it lives in `web/public/`.
 | 🪜 Crossclimb | yes | `crossclimb` | https://lnkd.in/crossclimb |
 | ✏️ Mini Sudoku | yes | `minisudoku` | https://lnkd.in/minisudoku |
 | 🧶 Patches | yes | `patches` | https://lnkd.in/patches |
+| 🔢 Sumbreak | yes | `sumbreak` | https://lnkd.in/sumbreak |
 | 📌 Pinpoint | yes | `pinpoint` | https://lnkd.in/pinpoint |
 | 🟩 Wordle | yes | `wordle` | https://www.nytimes.com/games/wordle/ |
 | 🇫🇷 Le Mot | yes | `lemot` | https://wordle.louan.me/ |

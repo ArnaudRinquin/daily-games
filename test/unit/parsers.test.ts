@@ -15,6 +15,7 @@ describe('catalog', () => {
       'crossclimb',
       'minisudoku',
       'patches',
+      'sumbreak',
       'pinpoint',
       'wordle',
       'lemot',
