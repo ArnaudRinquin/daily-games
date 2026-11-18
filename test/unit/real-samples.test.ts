@@ -15,6 +15,10 @@ const SAMPLES = {
 The classic game, made mini. Handcrafted by the originators of "Sudoku."
 lnkd.in/minisudoku.`,
   patches: 'Patches #168 | 0:07 🧶\nlnkd.in/patches.',
+  sumbreak: `Sumbreak #1 | 0:12 🔢
+With no hints & 1 backtrack.
+🥇 Day One Original! Solved LinkedIn's new math game on launch day. Your turn.
+lnkd.in/sumbreak.`,
   pinpoint: `Pinpoint #854 | 2 guesses with no mistakes
 1️⃣ | 12% match
 2️⃣ | 100% match 📌
@@ -63,6 +67,7 @@ describe('real share text, one game at a time', () => {
     crossclimb: { game: 'crossclimb', value: 162, display: '2:42' },
     minisudoku: { game: 'minisudoku', value: 54, display: '0:54' },
     patches: { game: 'patches', value: 7, display: '0:07' },
+    sumbreak: { game: 'sumbreak', value: 12, display: '0:12' },
     pinpoint: { game: 'pinpoint', value: 2, display: '2/5' },
     wordle: { game: 'wordle', value: 7, display: 'X/6' },
     lemot: { game: 'lemot', value: 5, display: '5/6' },
@@ -200,6 +205,7 @@ describe('a whole day pasted at once', () => {
       'patches',
       'pinpoint',
       'queens',
+      'sumbreak',
       'tango',
       'tupo',
       'wend',
@@ -222,6 +228,6 @@ describe('a whole day pasted at once', () => {
       .map(([, v]) => v)
       .join('\n\n');
     expect(parseAll(withoutZip).map((m) => m.game)).not.toContain('zip');
-    expect(parseAll(withoutZip)).toHaveLength(12);
+    expect(parseAll(withoutZip)).toHaveLength(13);
   });
 });

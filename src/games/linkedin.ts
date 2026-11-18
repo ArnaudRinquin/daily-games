@@ -99,6 +99,14 @@ export const patches = timedGame({
   emoji: '🧶',
 });
 
+/** Launched 2026-11-18. A hints/backtracks line follows the header; only the time scores. */
+export const sumbreak = timedGame({
+  id: 'sumbreak',
+  label: 'Sumbreak',
+  url: 'https://lnkd.in/sumbreak',
+  emoji: '🔢',
+});
+
 /**
  * Pinpoint is scored in guesses (1 best, 5 worst) — already lower-is-better.
  * Real text on a solve: `Pinpoint #854 | 2 guesses with no mistakes`, with the
@@ -169,5 +177,6 @@ export const linkedinGames = [
   crossclimb,
   miniSudoku,
   patches,
+  sumbreak,
   pinpoint,
 ];

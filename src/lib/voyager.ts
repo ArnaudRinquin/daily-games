@@ -25,6 +25,7 @@ export const GAME_TYPES: Readonly<Record<number, string>> = {
   6: 'zip',
   7: 'minisudoku',
   8: 'patches',
+  9: 'sumbreak',
 };
 
 const BASE = 'https://www.linkedin.com/voyager/api/graphql?includeWebMetadata=true';
