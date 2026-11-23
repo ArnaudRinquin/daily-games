@@ -55,11 +55,11 @@ year, or whenever the captain gets the "LinkedIn import stopped" DM.
    the Value, copy. It starts with `AQE`.
 4. Store both. Each command prompts for the value (paste, Enter):
    ```
-   pnpm exec wrangler secret put LI_JSESSIONID
-   pnpm exec wrangler secret put LI_AT
+   pnpm cf secret put LI_JSESSIONID
+   pnpm cf secret put LI_AT
    ```
    Secrets take effect on the next cron tick; no redeploy needed.
-5. Check: `wrangler d1 execute daily-games --remote --command "SELECT COUNT(*) FROM linkedin_profiles"`
+5. Check: `pnpm cf d1 execute daily-games --remote --command "SELECT COUNT(*) FROM linkedin_profiles"`
    is non-zero within ten minutes.
 
 Without the secrets the import is a no-op. When the session lapses (401, 403,
@@ -185,11 +185,25 @@ group you are in, ranked against a different field each time.
 
 ```bash
 pnpm install
-pnpm exec wrangler login   # interactive, opens a browser
-pnpm bootstrap             # everything else
+pnpm bootstrap             # everything
 ```
 
-`pnpm bootstrap` is safe to re-run. It checks your Cloudflare login, validates
+### Cloudflare credentials
+
+No `wrangler login`. Every script that talks to Cloudflare (`bootstrap`,
+`deploy`, `db:remote`, `cf`) goes through `scripts/cf.sh`, which runs it under
+`op run --env-file=.env.op`. `.env.op` is committed and holds only 1Password
+references; the values live in vault `infra`, item `cloudflare-dailygames`,
+fields `credential` and `account_id`. If `CLOUDFLARE_API_TOKEN` is already
+exported (CI does this from a GitHub secret), `cf.sh` uses it as is.
+
+The token, `dailygames-deploy`, is scoped to this account with
+**Account > Workers Scripts: Edit** and **Account > D1: Edit**, nothing more.
+Ad-hoc wrangler commands: `pnpm cf <args>`, e.g. `pnpm cf whoami`,
+`pnpm cf deploy --dry-run`. `pnpm dev`, `pnpm db:local` and tests are fully
+local and need no credentials.
+
+`pnpm bootstrap` is safe to re-run. It checks your Cloudflare credentials, validates
 the bot token against `getMe`, creates the D1 database and writes its id into
 `wrangler.jsonc`, applies the schema, generates and stores `WEBHOOK_SECRET`,
 builds the Mini App, deploys, and registers the webhook with `allowed_updates`
@@ -218,10 +232,10 @@ without it.
 ### Doing it by hand
 
 ```bash
-pnpm exec wrangler d1 create daily-games      # paste database_id into wrangler.jsonc
+pnpm cf d1 create daily-games                 # paste database_id into wrangler.jsonc
 pnpm db:remote                                 # schema
-pnpm exec wrangler secret put BOT_TOKEN
-pnpm exec wrangler secret put WEBHOOK_SECRET
+pnpm cf secret put BOT_TOKEN
+pnpm cf secret put WEBHOOK_SECRET
 pnpm run deploy                                # note the workers.dev URL
 curl "https://api.telegram.org/bot<TOKEN>/setWebhook" \
   -d "url=https://<worker>/telegram/webhook" \
@@ -303,7 +317,7 @@ webhooks need a public URL:
 
 ```bash
 cp .dev.vars.example .dev.vars
-pnpm exec wrangler deploy --env dev
+pnpm cf deploy --env dev
 ```
 
 ---

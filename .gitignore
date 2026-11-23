@@ -7,5 +7,6 @@ web/dist/
 .env
 .env.*
 !.env.example
+!.env.op
 *.log
 .DS_Store
