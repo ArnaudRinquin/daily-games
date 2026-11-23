@@ -99,7 +99,7 @@ catch-up, and the LinkedIn import.
 8. **Cron.** `runCron()`: insert `cron_runs` row first, import, then reminders + digests. Expose it as `scheduled()` and `POST /admin/run-cron`.
 9. **Mini App.** Vite + React in `web/`, built to `web/dist`, served as Worker assets. API verifies `initData`.
 10. **Tests.** Unit project for pure code; worker project with `cloudflareTest` + `readD1Migrations` and a fake `BOT_TOKEN` binding.
-11. **Deploy.** `pnpm exec wrangler login`, then `pnpm bootstrap` (validates token via `getMe`, creates D1, applies `0001`, sets `BOT_TOKEN`/`WEBHOOK_SECRET`, builds, deploys, calls `setWebhook` with `allowed_updates: ['message','callback_query','my_chat_member']`). Then apply later migrations by hand (see gotchas).
+11. **Deploy.** Create a Cloudflare API token (Account > Workers Scripts: Edit, Account > D1: Edit), store it in 1Password and point `.env.op` at it (or export `CLOUDFLARE_API_TOKEN`), then `pnpm bootstrap` (validates token via `getMe`, creates D1, applies `0001`, sets `BOT_TOKEN`/`WEBHOOK_SECRET`, builds, deploys, calls `setWebhook` with `allowed_updates: ['message','callback_query','my_chat_member']`). Then apply later migrations by hand (see gotchas).
 12. **BotFather.** `/newapp` → Worker URL → put short name in `MINIAPP_SHORT_NAME`, redeploy. `/setprivacy` → Disable, then remove and re-add the bot to each group. `/setuserpic`.
 13. **CI + cron.** Copy `.github/workflows/ci.yml` and `cron.yml`; set `CLOUDFLARE_API_TOKEN`, `ADMIN_SECRET`, `WORKER_URL`.
 14. **Optional.** LinkedIn: `wrangler secret put LI_AT` / `LI_JSESSIONID`. Shortcut: build plist, `shortcuts sign --mode anyone`, put in `web/public/`.
@@ -114,7 +114,7 @@ catch-up, and the LinkedIn import.
 - `cron_runs` row is written *before* the work (counts `-1`), otherwise a crashing tick is indistinguishable from no tick. Cron trigger changes take up to 15 min to propagate.
 
 **Deploy / DB**
-- CI deploys code on push to main; D1 migrations stay manual. In prod, `wrangler d1 migrations apply` fails here; apply each file with `wrangler d1 execute daily-games --remote --file=migrations/000N_….sql`. `pnpm bootstrap` and `pnpm db:remote` only run `0001_init.sql`.
+- CI deploys code on push to main; D1 migrations stay manual. In prod, `wrangler d1 migrations apply` fails here; apply each file with `pnpm cf d1 execute daily-games --remote --file=migrations/000N_….sql`. `pnpm bootstrap` and `pnpm db:remote` only run `0001_init.sql`.
 - `account_id` pinned in `wrangler.jsonc` so multi-account logins and CI target the right account.
 - Name the script `bootstrap`, not `setup` (`pnpm setup` is a pnpm built-in); call `pnpm run deploy`, not `pnpm deploy`.
 

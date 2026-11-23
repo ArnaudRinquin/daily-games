@@ -44,10 +44,10 @@ const rl = createInterface({ input: process.stdin, output: process.stdout });
 
 try {
   // 1 ────────────────────────────────────────────────────────────── auth
-  step(1, 'Checking Cloudflare login');
+  step(1, 'Checking Cloudflare credentials');
   const who = wrangler(['whoami'], { stdio: ['ignore', 'pipe', 'ignore'] });
   if (/not authenticated/i.test(who)) {
-    fail('Not logged in to Cloudflare.', 'Run: pnpm exec wrangler login');
+    fail('Not authenticated to Cloudflare.', 'Run via `pnpm bootstrap` (token from 1Password, see .env.op) or export CLOUDFLARE_API_TOKEN.');
   }
   console.log(`  ${c.ok('✔')} authenticated`);
 

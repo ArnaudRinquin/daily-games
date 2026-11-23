@@ -14,6 +14,8 @@
 #   bash scripts/seed-test-players.sh --undo
 set -euo pipefail
 cd "$(dirname "$0")/.."
+# One 1Password unlock for the whole run, not one per query.
+[ -n "${CLOUDFLARE_API_TOKEN:-}" ] || exec bash scripts/cf.sh bash scripts/seed-test-players.sh "$@"
 
 DAY="$(TZ=Europe/Paris date +%F)"
 DB=daily-games
@@ -30,7 +32,7 @@ if [ "${1:-}" = "--undo" ]; then
 fi
 
 # Your own ids, kept out of the repo. Find the chat id in the groups table:
-#   wrangler d1 execute daily-games --remote -y --command "SELECT chat_id, title FROM groups"
+#   pnpm cf d1 execute daily-games --remote -y --command "SELECT chat_id, title FROM groups"
 : "${TEST_CHAT:?set TEST_CHAT to the chat id of your TEST group}"
 : "${SEED_FROM_USER:?set SEED_FROM_USER to a user id whose game selection to copy}"
 # 999000xxx cannot collide with a real Telegram id.
